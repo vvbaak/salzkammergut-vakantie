@@ -454,8 +454,21 @@ button, textarea { font: inherit; }
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const photos = {
-  hallstatt: [], salzburg: [], hellbrunn: [], schafberg: [], dachstein: [], gosausee: [], badischl: [],
-  zwolferhorn: [], wolfgangsee: [], schlossort: [], postalmstrasse: [], gollinger: [], fuschlsee: [], mondsee: [], eisriesenwelt: []
+  hallstatt: ['photos/hallstatt-1.jpg','photos/hallstatt-2.jpg','photos/hallstatt-3.jpg','photos/hallstatt-4.jpg','photos/hallstatt-5.jpg','photos/hallstatt-6.jpg','photos/hallstatt-skywalk.jpg','photos/hallstatt-salzwelten.jpg'],
+  salzburg: ['photos/salzburg-1.jpg','photos/salzburg-2.jpg','photos/salzburg-3.jpg','photos/salzburg-4.jpg'],
+  hellbrunn: ['photos/salzburg-4.jpg'],
+  schafberg: ['photos/schafbergbahn-1.jpg','photos/wolfgangsee-1.jpg'],
+  dachstein: ['photos/dachstein-1.jpg','photos/dachstein-2.jpg','photos/5fingers-1.jpg','photos/5fingers-2.jpg'],
+  gosausee: ['photos/gosausee-1.jpg','photos/dachstein-1.jpg'],
+  badischl: ['photos/badischl-1.jpg','photos/badischl-2.jpg'],
+  zwolferhorn: ['photos/wolfgangsee-2.jpg'],
+  wolfgangsee: ['photos/wolfgangsee-1.jpg','photos/wolfgangsee-2.jpg','photos/stwolfgang-1.png'],
+  schlossort: ['photos/stwolfgang-1.png'],
+  postalmstrasse: ['photos/gollinger-1.jpg'],
+  gollinger: ['photos/gollinger-1.jpg'],
+  fuschlsee: ['photos/fuschlsee-1.jpg'],
+  mondsee: ['photos/mondsee-1.png'],
+  eisriesenwelt: ['photos/eisriesenwelt.jpg']
 };
 
 const BASE_LOCATION = { lat: 47.7395, lng: 13.4483, name: 'St. Wolfgang', desc: 'Branntweinhäusl · hoofdverblijf' };
@@ -479,22 +492,22 @@ const activities = [
 ];
 
 const fietsroutes = [
-  { id:'salzach-salzburg', name:'Salzach-Radweg → Salzburg', emoji:'🚴', location:'Laufen (Salzach)', description:'Vlak en grotendeels autovrij langs de Salzach. Van historische Altstadt Laufen naar barokstad Salzburg. Rustige natuurgebieden en uiterwaarden.', stats:['20-22 km','Vlak','Autovrij'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Salzach+Radweg+Laufen+Salzburg', lat:47.9381, lng:12.9373 },
-  { id:'salzach-tittmoning', name:'Salzach → Tittmoning & Burghausen', emoji:'🏰', location:'Laufen (Salzach)', description:'Stroomafwaarts langs de Salzach. Tittmoning met historisch stadsplein en burcht. Doortrappen naar Burghausen: langste burcht van de wereld!', stats:['20-40 km','Vlak/licht glooiend','Burchten'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Tittmoning+Salzachradweg', lat:48.0633, lng:12.7667 },
+  { id:'salzach-salzburg', name:'Salzach-Radweg → Salzburg', emoji:'🚴', location:'Laufen (Salzach)', description:'Vlak en grotendeels autovrij langs de Salzach. Van historische Altstadt Laufen naar barokstad Salzburg. Rustige natuurgebieden en uiterwaarden.', stats:['20-22 km','Vlak','Autovrij'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Salzach+Radweg+Laufen+Salzburg', lat:47.9381, lng:12.9373, img:'photos/fietsroute-1.png' },
+  { id:'salzach-tittmoning', name:'Salzach → Tittmoning & Burghausen', emoji:'🏰', location:'Laufen (Salzach)', description:'Stroomafwaarts langs de Salzach. Tittmoning met historisch stadsplein en burcht. Doortrappen naar Burghausen: langste burcht van de wereld!', stats:['20-40 km','Vlak/licht glooiend','Burchten'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Tittmoning+Salzachradweg', lat:48.0633, lng:12.7667, img:'photos/fietsroute-2.png' },
   { id:'abtsdorfer-see', name:'Rondje Abtsdorfer See', emoji:'🏊', location:'Laufen (Rupertiwinkel)', description:'Licht glooiend over rustige binnendoorweggetjes. Warmste meer van Beieren! Beschermd natuurgebied Haarmoos. Zwemmen en terrasjes onderweg.', stats:['15-25 km','Licht glooiend','Zwemmen!'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Abtsdorfer+See', lat:47.9167, lng:12.8833 },
   { id:'bajuwaren', name:'Bajuwaren-Radweg → Waginger See', emoji:'🏞️', location:'Laufen (Rupertiwinkel)', description:'Cultuur-historische route langs oude Bajuwaarse opgravingen. Glooiend door typisch Beiers boerenlandschap naar de Waginger See.', stats:['30-35 km','Glooiend','Historisch'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Waginger+See+Radweg', lat:47.9333, lng:12.7500 },
   { id:'stille-nacht', name:'Oberndorfer & Stille-Nacht-Runde', emoji:'🎵', location:'Laufen → Oberndorf (AT)', description:'Via Alte Salzachbrücke naar Oberndorf. Stille-Nacht-Kapelle (waar het kerstlied ontstond). Doorrijden naar Michaelbeuern of Mattsee.', stats:['25-35 km','Licht glooiend','Grensoverschrijdend'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Stille+Nacht+Kapelle+Oberndorf', lat:47.9414, lng:12.9378 },
   { id:'burmooser', name:'Bürmooser See Rondtocht', emoji:'🌊', location:'Oberndorf Bahnhof', description:'Rondtocht vanuit Oberndorf Bahnhof via de Bürmooser See met uitzicht op de Untersberg.', stats:['~20 km','Licht','Uitzicht Untersberg'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Bürmooser+See', lat:47.9800, lng:12.9200 },
-  { id:'stwolfgang-fiets', name:'St. Wolfgang → Salzkontor', emoji:'🧂', location:'St. Wolfgang', description:'Fietsroute van Radau bij St. Wolfgang naar het historische Salzkontor in St. Wolfgang.', stats:['~15 km','Gemiddeld','Langs het meer'], period:'St. Wolfgang (9-23 aug)', maps:'https://www.google.com/maps/search/St.+Wolfgang+Salzkontor', lat:47.7395, lng:13.4483 }
+  { id:'stwolfgang-fiets', name:'St. Wolfgang → Salzkontor', emoji:'🧂', location:'St. Wolfgang', description:'Fietsroute van Radau bij St. Wolfgang naar het historische Salzkontor in St. Wolfgang.', stats:['~15 km','Gemiddeld','Langs het meer'], period:'St. Wolfgang (9-23 aug)', maps:'https://www.google.com/maps/search/St.+Wolfgang+Salzkontor', lat:47.7395, lng:13.4483, img:'photos/fietsroute-3.png' }
 ];
 
 const wandelroutes = [
-  { id:'echerntal', name:'Echerntal Theme Trail', emoji:'🌊', location:'Hallstatt (P2)', description:'Gezinsvriendelijke wandeling langs bergstromen naar de imposante Waldbachstrub waterval en Gletsjertuin. Informatieborden over natuur en schilders.', stats:['5,8 km','~2,5 uur','253 hm'], maps:'https://www.google.com/maps/search/Echerntal+Hallstatt', lat:47.5500, lng:13.6400 },
-  { id:'gosausee-walk', name:'Rondje Vorderer Gosausee', emoji:'🏔️', location:'Gosau', description:'Vlak en breed wandelpad rondom de Vorderer Gosausee. Direct uitzicht op de Dachstein gletsjer die weerspiegelt in het meer. Bankjes onderweg.', stats:['~3,5 km','~1 uur','Vlak'], maps:'https://www.google.com/maps/search/Vorderer+Gosausee', lat:47.5353, lng:13.5200 },
+  { id:'echerntal', name:'Echerntal Theme Trail', emoji:'🌊', location:'Hallstatt (P2)', description:'Gezinsvriendelijke wandeling langs bergstromen naar de imposante Waldbachstrub waterval en Gletsjertuin. Informatieborden over natuur en schilders.', stats:['5,8 km','~2,5 uur','253 hm'], maps:'https://www.google.com/maps/search/Echerntal+Hallstatt', lat:47.5500, lng:13.6400, img:'photos/echerntal-1.jpg' },
+  { id:'gosausee-walk', name:'Rondje Vorderer Gosausee', emoji:'🏔️', location:'Gosau', description:'Vlak en breed wandelpad rondom de Vorderer Gosausee. Direct uitzicht op de Dachstein gletsjer die weerspiegelt in het meer. Bankjes onderweg.', stats:['~3,5 km','~1 uur','Vlak'], maps:'https://www.google.com/maps/search/Vorderer+Gosausee', lat:47.5353, lng:13.5200, img:'photos/gosausee-1.jpg' },
   { id:'hallstattersee', name:'Rondwandeling Hallstätter See', emoji:'🌅', location:'Obertraun', description:'Rustige wandelpromenade langs de oostelijke oever. Vlak pad langs het water met zicht op Hallstatt aan de overkant. Rustiger alternatief dan het drukke Hallstatt zelf.', stats:['~5 km','~1,5 uur','Vlak'], maps:'https://www.google.com/maps/search/Hallstätter+See+Obertraun', lat:47.5622, lng:13.6493 },
-  { id:'schafberg-walk', name:'Schafberg Wandeling', emoji:'⛰️', location:'St. Wolfgang', description:'Te voet naar de top van de Schafberg (1783m). Stevig maar lonend. Alternatie: tandradbaan omhoog, wandelen omlaag.', stats:['~6 km','~3,5 uur','1190 hm'], maps:'https://www.google.com/maps/search/Schafberg+wandeling+St.+Wolfgang', lat:47.7750, lng:13.4350 },
+  { id:'schafberg-walk', name:'Schafberg Wandeling', emoji:'⛰️', location:'St. Wolfgang', description:'Te voet naar de top van de Schafberg (1783m). Stevig maar lonend. Alternatie: tandradbaan omhoog, wandelen omlaag.', stats:['~6 km','~3,5 uur','1190 hm'], maps:'https://www.google.com/maps/search/Schafberg+wandeling+St.+Wolfgang', lat:47.7750, lng:13.4350, img:'photos/schafbergbahn-1.jpg' },
   { id:'baumwipfel', name:'Baumwipfelpfad Salzkammergut', emoji:'🌲', location:'Gmunden (Grünberg)', description:'Wandeltocht door de boomtoppen op de Grünberg in Gmunden. Panorama uitkijktoren. Volledig toegankelijk met kinderwagen!', stats:['~1,5 km','~45 min','Vlak'], maps:'https://www.google.com/maps/search/Baumwipfelpfad+Salzkammergut', lat:47.9008, lng:13.7859 },
-  { id:'5fingers', name:'5 Fingers Uitkijkpunt', emoji:'🖐️', location:'Obertraun (Krippenstein)', description:'5 platforms die als vingers uit de bergtop steken, 400m boven de Hallstättersee. Één vinger heeft glazen bodem! Kabelbaan omhoog, dan 20 min wandelen.', stats:['~1 km','~20 min','Spectaculair!'], maps:'https://www.google.com/maps/search/5+Fingers+Krippenstein', lat:47.5400, lng:13.6800 }
+  { id:'5fingers', name:'5 Fingers Uitkijkpunt', emoji:'🖐️', location:'Obertraun (Krippenstein)', description:'5 platforms die als vingers uit de bergtop steken, 400m boven de Hallstättersee. Één vinger heeft glazen bodem! Kabelbaan omhoog, dan 20 min wandelen.', stats:['~1 km','~20 min','Spectaculair!'], maps:'https://www.google.com/maps/search/5+Fingers+Krippenstein', lat:47.5400, lng:13.6800, img:'photos/5fingers-1.jpg' }
 ];
 
 const restaurants = [
@@ -718,6 +731,7 @@ function renderRoutes(targetId, items, badgeText) {
       </div>
       <div class="route-detail"><div class="route-detail-inner">
         ${route.period ? `<div class="sub-activities"><span class="route-period-chip">📅 ${route.period}</span></div>` : ''}
+        ${route.img ? `<div style="margin:10px 0;border-radius:10px;overflow:hidden;"><img src="${route.img}" alt="${route.name}" style="width:100%;height:auto;display:block;" loading="lazy"></div>` : ''}
         <div class="route-description">${route.description}</div>
         <div class="route-stats">${route.stats.map(s => `<span class="route-stat">${s}</span>`).join('')}</div>
         <div style="margin-top:12px;"><a href="${route.maps}" target="_blank" class="btn-maps" style="width:100%">📍 Routepunt openen</a></div>
