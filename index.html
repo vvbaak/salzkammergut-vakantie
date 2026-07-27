@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#b11f4b">
+<link rel="manifest" href="salzkammergut-manifest.json">
+<title>Laufen-Salzkammergut 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("scoutTheme");
+    const theme =
+      param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+<script>
+  (() => {
+    try {
+      const saved = localStorage.getItem('salzkammergut_theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    } catch {}
+  })();
+</script>
+<style>
+:root {
+  color-scheme: light;
+  --cp-bg: #f7f4ef;
+  --cp-bg-elevated: #fcfbf8;
+  --cp-surface: #ffffff;
+  --cp-surface-soft: #f5f5f5;
+  --cp-border: #dedede;
+  --cp-border-strong: #919191;
+  --cp-text: #242424;
+  --cp-text-muted: #5c5c5c;
+  --cp-text-soft: #6f6f6f;
+  --cp-accent: #b11f4b;
+  --cp-accent-hover: #9a1a41;
+  --cp-accent-soft: rgba(177, 31, 75, 0.08);
+  --cp-accent-fg: #ffffff;
+  --cp-success: #16a34a;
+  --cp-danger: #dc2626;
+  --cp-warning: #f59e0b;
+  --cp-link: #0078d4;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+  --cp-overlay: rgba(255, 255, 255, 0.8);
+  --cp-panel: rgba(255, 255, 255, 0.86);
+  --cp-panel-strong: rgba(255, 255, 255, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.55);
+  --cp-highlight: rgba(177, 31, 75, 0.12);
+  --cp-card-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --cp-bg: #3d3b3a;
+  --cp-bg-elevated: #343231;
+  --cp-surface: #292929;
+  --cp-surface-soft: #2e2e2e;
+  --cp-border: #474747;
+  --cp-border-strong: #5f5f5f;
+  --cp-text: #dedede;
+  --cp-text-muted: #919191;
+  --cp-text-soft: #b0b0b0;
+  --cp-accent: #fd8ea1;
+  --cp-accent-hover: #fb7b91;
+  --cp-accent-soft: rgba(253, 142, 161, 0.14);
+  --cp-accent-fg: #1a1a1a;
+  --cp-success: #4ade80;
+  --cp-danger: #f87171;
+  --cp-warning: #fbbf24;
+  --cp-link: #4da6ff;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  --cp-overlay: rgba(41, 41, 41, 0.88);
+  --cp-panel: rgba(41, 41, 41, 0.72);
+  --cp-panel-strong: rgba(41, 41, 41, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.04);
+  --cp-highlight: rgba(253, 142, 161, 0.12);
+  --cp-card-shadow: 0 0 2px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.45);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--cp-bg);
+  color: var(--cp-text);
+  min-height: 100dvh;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  overflow-x: hidden;
+}
+a { color: var(--cp-link); }
+button, textarea { font: inherit; }
+.header {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cp-accent) 12%, var(--cp-bg)), var(--cp-bg-elevated));
+  padding: calc(env(safe-area-inset-top, 20px) + 8px) 20px 20px;
+  text-align: center;
+  position: relative;
+  border-bottom: 1px solid var(--cp-border);
+}
+.header h1 {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--cp-text);
+  cursor: pointer;
+  user-select: none;
+  display: inline-block;
+  font-family: 'Nunito', "Segoe UI", Aptos, Calibri, sans-serif;
+}
+.header .subtitle { font-size: 0.85rem; color: var(--cp-text-muted); margin-top: 4px; font-weight: 600; }
+.header .dates { display: inline-block; background: var(--cp-accent); color: var(--cp-accent-fg); padding: 4px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; margin-top: 8px; }
+.theme-toggle {
+  position: absolute; top: calc(env(safe-area-inset-top, 12px) + 10px); right: 16px;
+  width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--cp-border);
+  background: var(--cp-surface); display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; cursor: pointer; box-shadow: var(--cp-card-shadow); transition: transform 0.3s; z-index: 10;
+}
+.theme-toggle:active { transform: scale(0.9); }
+.random-result-popup {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: var(--cp-surface); border: 2px solid var(--cp-accent);
+  border-radius: 20px; padding: 24px; text-align: center;
+  z-index: 10001; box-shadow: var(--cp-shadow);
+  animation: pop 0.3s ease; max-width: 85vw; width: 320px;
+}
+.random-result-popup .random-emoji { font-size: 3rem; margin-bottom: 10px; }
+.random-result-popup .random-name { font-size: 1.1rem; font-weight: 800; color: var(--cp-text); }
+.random-result-popup .random-desc { font-size: 0.82rem; color: var(--cp-text-muted); margin-top: 6px; line-height: 1.5; }
+.random-result-popup .random-type { font-size: 0.7rem; color: var(--cp-text-soft); margin-top: 8px; text-transform: uppercase; font-weight: 700; }
+.random-result-popup .random-link { display: inline-block; margin-top: 12px; padding: 10px 18px; background: var(--cp-accent); color: var(--cp-accent-fg); border-radius: 10px; text-decoration: none; font-size: 0.82rem; font-weight: 700; }
+.random-result-popup .random-close { position: absolute; top: 10px; right: 14px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--cp-text-muted); }
+.random-overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--cp-text) 24%, transparent); z-index: 10000; }
+.progress-wrap { padding: 12px 20px 4px; background: var(--cp-bg); }
+.progress-label { font-size: 0.8rem; font-weight: 700; color: var(--cp-text-muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+.progress-bar { height: 10px; background: var(--cp-surface-soft); border-radius: 10px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--cp-success), var(--cp-link)); border-radius: 10px; transition: width 0.5s ease; width: 0%; }
+.tab-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--cp-panel-strong); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--cp-border); display: flex; justify-content: space-around;
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); z-index: 100;
+}
+.tab-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border: none; background: none; cursor: pointer; border-radius: 10px; transition: all 0.2s; color: var(--cp-text-muted); }
+.tab-btn.active { color: var(--cp-accent); background: var(--cp-accent-soft); }
+.tab-btn .tab-icon { font-size: 1.5rem; line-height: 1; }
+.tab-btn .tab-label { font-size: 0.65rem; font-weight: 700; }
+.section { display: none; padding: 16px; }
+.section.active { display: block; }
+.section-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.activity-card, .route-card, .info-block {
+  background: var(--cp-surface); border-radius: 16px; margin-bottom: 12px; box-shadow: var(--cp-card-shadow); border: 1px solid var(--cp-border); overflow: hidden;
+}
+.activity-card.checked { opacity: 0.65; border-color: var(--cp-success); }
+.activity-card.checked .activity-summary { text-decoration: line-through; text-decoration-color: var(--cp-success); }
+.activity-header { display: flex; align-items: center; padding: 14px 16px; gap: 12px; cursor: pointer; user-select: none; }
+.activity-checkbox { width: 28px; height: 28px; border-radius: 50%; border: 2.5px solid var(--cp-border-strong); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; font-size: 14px; }
+.activity-card.checked .activity-checkbox { background: var(--cp-success); border-color: var(--cp-success); color: var(--cp-surface); }
+.activity-info { flex: 1; min-width: 0; }
+.activity-name { font-size: 0.95rem; font-weight: 700; line-height: 1.3; color: var(--cp-text); }
+.activity-summary { font-size: 0.78rem; color: var(--cp-text-muted); margin-top: 2px; line-height: 1.4; }
+.activity-price-badge { background: var(--cp-accent-soft); color: var(--cp-accent); padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.activity-price-badge.free { background: color-mix(in srgb, var(--cp-success) 12%, transparent); color: var(--cp-success); }
+.activity-expand-btn, .route-expand-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--cp-surface-soft); border: none; cursor: pointer; flex-shrink: 0; font-size: 1rem; transition: transform 0.3s; color: var(--cp-text-muted); }
+.activity-card.expanded .activity-expand-btn, .route-card.expanded .route-expand-btn { transform: rotate(180deg); }
+.activity-detail, .route-detail { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: var(--cp-surface-soft); }
+.activity-card.expanded .activity-detail { max-height: 1200px; }
+.route-card.expanded .route-detail { max-height: 720px; }
+.activity-detail-inner, .route-detail-inner { padding: 16px; }
+.detail-description, .route-description { font-size: 0.85rem; line-height: 1.6; color: var(--cp-text); margin-bottom: 14px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.detail-item, .route-stat { background: var(--cp-surface); border-radius: 10px; padding: 10px 12px; border: 1px solid var(--cp-border); }
+.detail-item .label { font-size: 0.68rem; color: var(--cp-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.detail-item .value { font-size: 0.88rem; font-weight: 700; color: var(--cp-text); margin-top: 2px; }
+.detail-item .value.free-val { color: var(--cp-success); }
+.btn-maps { display: inline-flex; align-items: center; gap: 6px; background: var(--cp-accent); color: var(--cp-accent-fg); padding: 10px 18px; border-radius: 12px; text-decoration: none; font-size: 0.82rem; font-weight: 700; border: none; cursor: pointer; justify-content: center; transition: background 0.2s; }
+.btn-maps:hover { background: var(--cp-accent-hover); }
+.sub-activities { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+.sub-chip, .route-period-chip { background:var(--cp-accent-soft); color:var(--cp-accent); font-size:0.78rem; font-weight:600; padding:5px 10px; border-radius:20px; white-space:nowrap; }
+.filter-bar { display:flex; gap:8px; padding:0 20px 10px; }
+.filter-btn { background:var(--cp-surface); border:1px solid var(--cp-border); border-radius:20px; padding:6px 14px; font-size:0.8rem; font-weight:700; cursor:pointer; color:var(--cp-text-muted); transition:all 0.2s; }
+.filter-btn.active { background:var(--cp-accent); color:var(--cp-accent-fg); border-color:var(--cp-accent); }
+.indoor-badge { display:inline-block; background:color-mix(in srgb, var(--cp-link) 14%, transparent); color:var(--cp-link); font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:6px; margin-left:6px; vertical-align:middle; }
+.notes-section { padding:16px 20px; }
+.notes-label { font-size:0.8rem; font-weight:700; color:var(--cp-text-muted); margin-bottom:6px; }
+.notes-area { width:100%; min-height:80px; border:1px solid var(--cp-border); border-radius:12px; padding:10px 14px; font-size:0.82rem; color:var(--cp-text); background:var(--cp-surface); resize:vertical; outline:none; transition:border-color 0.2s; }
+.notes-area:focus { border-color:var(--cp-accent); }
+.carousel-wrap { margin: 14px -16px 14px; overflow-x: auto; scroll-snap-type: x mandatory; display: flex; gap: 10px; padding: 0 16px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.carousel-wrap::-webkit-scrollbar { display: none; }
+.carousel-item { min-width: calc(100% - 32px); max-width: calc(100% - 32px); height: 180px; border-radius: 12px; scroll-snap-align: start; flex-shrink: 0; overflow: hidden; background: var(--cp-surface); border: 1px solid var(--cp-border); }
+.carousel-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.carousel-placeholder { width: 100%; height: 100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color: var(--cp-text-muted); background: linear-gradient(135deg, color-mix(in srgb, var(--cp-accent) 7%, var(--cp-surface-soft)), var(--cp-surface)); }
+.carousel-placeholder strong { color: var(--cp-text); }
+.category-header { font-size: 1rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px; color: var(--cp-text); padding: 12px 16px; background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 14px; cursor: pointer; user-select: none; }
+.category-header:first-of-type { margin-top: 8px; }
+.category-header .cat-count { font-size: 0.72rem; font-weight: 600; background: var(--cp-accent-soft); color: var(--cp-accent); padding: 2px 8px; border-radius: 10px; margin-left: auto; }
+.category-header .cat-arrow { transition: transform 0.3s; margin-left: 6px; font-size: 0.8rem; }
+.category-header.open .cat-arrow { transform: rotate(180deg); }
+.category-group { margin-bottom: 12px; }
+.category-items { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+.category-group.open .category-items { max-height: 2000px; }
+.resto-card { background: var(--cp-surface); border-radius: 0; padding: 10px 16px; border: 1px solid var(--cp-border); border-top: none; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background 0.2s; }
+.resto-card:last-child { border-radius: 0 0 14px 14px; }
+.resto-card:hover, .resto-card.expanded { background: var(--cp-surface-soft); }
+.resto-left { flex: 1; min-width: 0; }
+.resto-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.resto-name { font-size: 0.85rem; font-weight: 700; color: var(--cp-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.resto-type { font-size: 0.72rem; color: var(--cp-text-muted); margin-top: 1px; }
+.resto-score { background: color-mix(in srgb, var(--cp-warning) 18%, transparent); color: var(--cp-text); padding: 2px 8px; border-radius: 8px; font-size: 0.72rem; font-weight: 800; white-space: nowrap; flex-shrink: 0; }
+.resto-meta { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+.resto-meta-item { font-size: 0.75rem; color: var(--cp-text-muted); display: flex; align-items: center; gap: 4px; }
+.resto-desc { font-size: 0.8rem; color: var(--cp-text-soft); margin-top: 8px; line-height: 1.5; }
+.resto-expand { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; padding: 0 16px; }
+.resto-card.expanded .resto-expand { max-height: 200px; }
+.route-card { cursor: pointer; user-select: none; }
+.route-header { padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+.route-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; border: 1px solid var(--cp-border); }
+.tone-1 { background: linear-gradient(135deg, color-mix(in srgb, var(--cp-link) 12%, var(--cp-surface)), color-mix(in srgb, var(--cp-link) 5%, var(--cp-bg-elevated))); }
+.tone-2 { background: linear-gradient(135deg, color-mix(in srgb, var(--cp-success) 12%, var(--cp-surface)), color-mix(in srgb, var(--cp-success) 5%, var(--cp-bg-elevated))); }
+.tone-3 { background: linear-gradient(135deg, color-mix(in srgb, var(--cp-warning) 14%, var(--cp-surface)), color-mix(in srgb, var(--cp-warning) 5%, var(--cp-bg-elevated))); }
+.tone-4 { background: linear-gradient(135deg, color-mix(in srgb, var(--cp-accent) 12%, var(--cp-surface)), color-mix(in srgb, var(--cp-accent) 5%, var(--cp-bg-elevated))); }
+.route-info { flex: 1; }
+.route-name { font-size: 0.95rem; font-weight: 700; }
+.route-location { font-size: 0.78rem; color: var(--cp-text-muted); margin-top: 2px; }
+.route-badge { padding: 3px 10px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; background: color-mix(in srgb, var(--cp-success) 12%, transparent); color: var(--cp-success); white-space: nowrap; }
+.route-stats { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.route-stat { font-size: 0.75rem; font-weight: 700; color: var(--cp-text-muted); padding: 6px 10px; }
+.event-list { display:flex; flex-direction:column; gap:6px; }
+.event-item { display:flex; align-items:center; gap:12px; padding:8px 10px; border-radius:10px; background:var(--cp-surface-soft); border:1px solid var(--cp-border); }
+.event-item.highlight { background:var(--cp-accent-soft); border-color:var(--cp-accent); }
+.event-date { min-width:64px; font-size:0.72rem; font-weight:800; color:var(--cp-accent); text-align:center; text-transform:uppercase; line-height:1.2; }
+.event-info { flex:1; min-width:0; }
+.event-name { font-size:0.82rem; font-weight:700; color:var(--cp-text); }
+.event-meta { font-size:0.72rem; color:var(--cp-text-muted); margin-top:2px; }
+.info-block { padding: 18px; }
+.info-block h3 { font-size: 1rem; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.price-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.78rem; overflow: hidden; border-radius: 10px; border: 1px solid var(--cp-border); }
+.price-table th { background: var(--cp-accent); color: var(--cp-accent-fg); padding: 10px 8px; font-weight: 700; text-align: left; font-size: 0.72rem; }
+.price-table td { padding: 10px 8px; border-bottom: 1px solid var(--cp-border); background: var(--cp-surface); }
+.price-table tr:last-child td { border-bottom: none; }
+.price-table tr.highlight td { background: var(--cp-accent-soft); font-weight: 700; color: var(--cp-accent); }
+.tip-box { background: linear-gradient(135deg, color-mix(in srgb, var(--cp-success) 10%, var(--cp-surface)), color-mix(in srgb, var(--cp-link) 10%, var(--cp-surface))); border: 1px solid var(--cp-success); border-radius: 12px; padding: 12px 14px; margin-top: 12px; font-size: 0.82rem; line-height: 1.5; color: var(--cp-text); }
+.tip-box strong { color: var(--cp-success); }
+.info-list { display:grid; gap:10px; }
+.info-item { padding:12px 0; border-bottom:1px solid var(--cp-border); font-size:0.84rem; line-height:1.55; }
+.info-item:last-child { border-bottom:none; }
+.info-item strong { color: var(--cp-text); }
+.link-list { display:flex; flex-direction:column; gap:8px; }
+.map-section { margin-top: 20px; border-radius: 16px; overflow: hidden; border: 1px solid var(--cp-border); box-shadow: var(--cp-card-shadow); }
+.map-label { background: var(--cp-surface); padding: 10px 14px; font-size: 0.8rem; font-weight: 700; color: var(--cp-text-muted); display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--cp-border); }
+.map-wrap { height: 320px; width: 100%; position: relative; z-index: 1; }
+.leaflet-popup-content { font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif; font-size: 0.82rem; }
+.leaflet-popup-content strong { font-weight: 700; }
+.leaflet-popup-content a { color: var(--cp-accent); font-weight: 700; text-decoration: none; }
+.haus-tooltip { font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 700; font-size: 0.72rem; background: var(--cp-danger); color: var(--cp-surface); border: none; border-radius: 6px; padding: 2px 8px; box-shadow: var(--cp-card-shadow); }
+.haus-tooltip::before { border-right-color: var(--cp-danger) !important; }
+.marker-label { font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 700; font-size: 0.68rem; background: var(--cp-surface); color: var(--cp-text); border: 1px solid var(--cp-border); border-radius: 5px; padding: 1px 6px; box-shadow: var(--cp-card-shadow); }
+.marker-label::before { border-right-color: var(--cp-border) !important; }
+.modal-overlay { position: fixed; inset: 0; background: var(--cp-overlay); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 10000; display: none; justify-content: center; align-items: flex-end; }
+.modal-overlay.active { display: flex; }
+#easterModal.active, #bingoModal.active { align-items: flex-start; }
+#easterModal .modal-sheet, #bingoModal .modal-sheet { border-radius: 0 0 20px 20px; max-height: 92dvh; }
+.modal-sheet { background: var(--cp-surface); border-radius: 20px 20px 0 0; width: 100%; max-height: 88dvh; overflow-y: auto; padding: 20px 18px calc(24px + env(safe-area-inset-bottom, 0px)); animation: slideUp 0.3s ease; box-shadow: var(--cp-shadow); }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-close { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--cp-surface-soft); border: none; cursor: pointer; font-size: 1.2rem; color: var(--cp-text-muted); float: right; }
+.modal-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 16px; }
+.word-category { margin-bottom: 8px; border: 1px solid var(--cp-border); border-radius: 12px; overflow: hidden; }
+.word-cat-header { padding: 12px 14px; font-weight: 700; font-size: 0.88rem; cursor: pointer; user-select: none; background: var(--cp-surface-soft); display: flex; justify-content: space-between; align-items: center; }
+.word-cat-header .arrow { transition: transform 0.3s; font-size: 0.8rem; }
+.word-category.open .word-cat-header .arrow { transform: rotate(180deg); }
+.word-cat-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+.word-category.open .word-cat-body { max-height: 1000px; }
+.word-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 4px; padding: 8px 14px; border-bottom: 1px solid var(--cp-border); font-size: 0.78rem; }
+.word-row:last-child { border-bottom: none; }
+.word-row.hdr { font-weight: 800; color: var(--cp-text-muted); font-size: 0.7rem; text-transform: uppercase; background: var(--cp-surface-soft); }
+.word-row .pron { color: var(--cp-accent); font-style: italic; }
+.bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 16px; }
+.bingo-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--cp-surface-soft); border: 2px solid var(--cp-border); border-radius: 12px; cursor: pointer; user-select: none; transition: all 0.2s; padding: 4px; position: relative; }
+.bingo-cell .bingo-emoji { font-size: 1.6rem; line-height: 1; }
+.bingo-cell .bingo-label { font-size: 0.55rem; font-weight: 700; color: var(--cp-text-muted); margin-top: 3px; text-align: center; line-height: 1.2; }
+.bingo-cell.checked { background: var(--cp-accent-soft); border-color: var(--cp-accent); opacity: 0.6; }
+.bingo-cell.checked::after { content: '✕'; position: absolute; font-size: 2.2rem; font-weight: 900; color: var(--cp-accent); opacity: 0.7; }
+.bingo-reset-btn { width: 100%; padding: 12px; border: 2px solid var(--cp-border); background: var(--cp-surface-soft); color: var(--cp-text-muted); border-radius: 12px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.bingo-reset-btn:active { transform: scale(0.97); }
+@keyframes pop { 0%{transform:translate(-50%, -50%) scale(1)} 50%{transform:translate(-50%, -50%) scale(1.05)} 100%{transform:translate(-50%, -50%) scale(1)} }
+.pop-inline { animation: inlinePop 0.3s ease; }
+@keyframes inlinePop { 0%{transform:scale(1)} 50%{transform:scale(1.3)} 100%{transform:scale(1)} }
+@keyframes shake { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-5deg)} 75%{transform:rotate(5deg)} }
+.shake { animation: shake 0.4s ease; }
+@media (max-width: 420px) {
+  .detail-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <button class="theme-toggle" id="themeToggle" aria-label="Wissel dag/nacht">☀️</button>
+  <button class="theme-toggle" id="randomBtn" style="left:16px;right:auto;" aria-label="Random activiteit">🎲</button>
+  <button class="theme-toggle" id="bingoBtn" style="left:68px;right:auto;" aria-label="Auto Bingo">🚗</button>
+  <h1 id="titleEgg">🌄 Laufen-Salzkammergut 2026</h1>
+  <div class="subtitle">Laufen · Wolfgangsee · Salzkammergut</div>
+  <div class="dates">📅 5 – 23 augustus 2026</div>
+</div>
+
+<div class="progress-wrap" id="progressWrap" style="display:none;">
+  <div class="progress-label"><span>Activiteiten voltooid</span><span id="progressText">0/0</span></div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<div class="section active" id="sec-activiteiten">
+  <div class="section-title">🎯 Activiteiten</div>
+  <div class="filter-bar">
+    <button class="filter-btn" id="filterBadWeather">🌧️ Slecht weer</button>
+  </div>
+  <div id="randomResult" style="display:none;"></div>
+  <div id="activityList"></div>
+  <div class="map-section">
+    <div class="map-label">🗺️ Kaart: alle activiteiten</div>
+    <div class="map-wrap" id="mapActiviteiten"></div>
+  </div>
+  <div class="notes-section"><div class="notes-label">📝 Notities</div><textarea class="notes-area" data-notes="activiteiten" placeholder="Typ hier je notities..."></textarea></div>
+</div>
+
+<div class="section" id="sec-fietsroutes">
+  <div class="section-title">🚴 Fietsroutes</div>
+  <div id="fietsList"></div>
+  <div class="map-section">
+    <div class="map-label">🗺️ Kaart: fietsroutes</div>
+    <div class="map-wrap" id="mapFietsroutes"></div>
+  </div>
+  <div class="notes-section"><div class="notes-label">📝 Notities</div><textarea class="notes-area" data-notes="fietsroutes" placeholder="Typ hier je notities..."></textarea></div>
+</div>
+
+<div class="section" id="sec-wandelroutes">
+  <div class="section-title">🥾 Wandelroutes</div>
+  <div id="wandelList"></div>
+  <div class="map-section">
+    <div class="map-label">🗺️ Kaart: wandelroutes</div>
+    <div class="map-wrap" id="mapWandelroutes"></div>
+  </div>
+  <div class="notes-section"><div class="notes-label">📝 Notities</div><textarea class="notes-area" data-notes="wandelroutes" placeholder="Typ hier je notities..."></textarea></div>
+</div>
+
+<div class="section" id="sec-restaurants">
+  <div class="section-title">🍽️ Restaurants</div>
+  <div id="restaurantList"></div>
+  <div class="map-section">
+    <div class="map-label">🗺️ Kaart: restaurants & koffie</div>
+    <div class="map-wrap" id="mapRestaurants"></div>
+  </div>
+  <div class="notes-section"><div class="notes-label">📝 Notities</div><textarea class="notes-area" data-notes="restaurants" placeholder="Typ hier je notities..."></textarea></div>
+</div>
+
+<div class="section" id="sec-info">
+  <div class="section-title">ℹ️ Info</div>
+
+  <div class="info-block" id="weatherBlock">
+    <h3>☀️ Weer in St. Wolfgang</h3>
+    <div id="weatherContent" style="font-size:0.85rem;color:var(--cp-text-muted);">Weer ophalen...</div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="https://www.bergfex.at/sommer/st-wolfgang/wetter/" target="_blank" class="btn-maps" style="width:auto;">🏘️ Bergfex St. Wolfgang</a>
+      <a href="https://www.bergfex.at/sommer/krippenstein/wetter/" target="_blank" class="btn-maps" style="width:auto;background:var(--cp-link);color:var(--cp-surface);">🏔️ Bergfex Dachstein</a>
+    </div>
+  </div>
+
+  <div class="info-block">
+    <h3>🎫 Dachstein prijzen 2026</h3>
+    <table class="price-table">
+      <thead><tr><th>Ticket</th><th>Volw.</th><th>Jeugd</th><th>Kind</th></tr></thead>
+      <tbody>
+        <tr><td>Panorama-Ticket</td><td>€46,70</td><td>€42</td><td>€25,70</td></tr>
+        <tr><td>Grot-ticket</td><td>€50,20</td><td>€45,20</td><td>€27,60</td></tr>
+        <tr class="highlight"><td>Alles-in-één</td><td>€66,20</td><td>€59,60</td><td>€36,40</td></tr>
+      </tbody>
+    </table>
+    <div class="tip-box">💡 <strong>Tip:</strong> Voor IJsgrot + Mammutgrot + panorama is het alles-in-één ticket meestal het slimst.</div>
+  </div>
+
+  <div class="info-block">
+    <h3>🪪 Salzkammergut SommerCard</h3>
+    <p style="font-size:0.82rem;color:var(--cp-text-muted);line-height:1.6;">Veel accommodaties in het Salzkammergut geven een SommerCard of gastenkaart waarmee je kortingen krijgt op kabelbanen, boottochten, musea en lokale attracties. Vraag bij Branntweinhäusl meteen na welke kaart jullie krijgen en of Hallstatt / Schafberg / Wolfgangsee-partners meedoen.</p>
+    <div class="tip-box">🎯 <strong>Eerst checken:</strong> gastenkaart, korting op SchafbergBahn, bootcombi's en lokale parkeerdeals kunnen samen flink schelen.</div>
+    <div style="margin-top:12px;">
+      <a href="https://www.salzkammergut.at/en/top-ausflugsziele/salzkammergut-sommercard.html" target="_blank" class="btn-maps" style="width:100%;">🔗 Meer info over de SommerCard</a>
+    </div>
+  </div>
+
+  <div class="info-block">
+    <h3>🧳 Reisschema</h3>
+    <div class="event-list">
+      <div class="event-item"><div class="event-date">5 aug</div><div class="event-info"><div class="event-name">→ Hotel Smart-Inn, Erlangen</div><div class="event-meta">566 km · ~6,5 uur</div></div></div>
+      <div class="event-item highlight"><div class="event-date">6–9 aug</div><div class="event-info"><div class="event-name">→ Laufen, Duitsland</div><div class="event-meta">290 km · ~3,5 uur</div></div></div>
+      <div class="event-item highlight"><div class="event-date">9–23 aug</div><div class="event-info"><div class="event-name">→ Branntweinhäusl, St. Wolfgang</div><div class="event-meta">390 km · ~4 uur</div></div></div>
+    </div>
+  </div>
+
+  <div class="info-block">
+    <h3>🅿️ Parking tips</h3>
+    <div class="info-list">
+      <div class="info-item"><strong>Hallstatt:</strong> parkeer vroeg bij <strong>P2 Lahn</strong> en pak zo nodig shuttle/looproute naar dorp en zoutmijn.</div>
+      <div class="info-item"><strong>Salzburg:</strong> kies P+R of randparking en ga vroeg (08:00–10:00) om drukte en centrumstress te vermijden.</div>
+      <div class="info-item"><strong>SchafbergBahn:</strong> reserveer trein vooraf; parkeerplekken in St. Wolfgang zijn populair op mooie dagen.</div>
+      <div class="info-item"><strong>Postalmstraße:</strong> tol graag <strong>cash</strong> meenemen; na 16:30 vaak voordeliger.</div>
+      <div class="info-item"><strong>Dachstein / Krippenstein:</strong> trek extra tijd uit voor kabelbaan, wachtrijen en de loopstukken naar grotten en 5 Fingers.</div>
+    </div>
+  </div>
+
+  <div class="info-block">
+    <h3>🔗 Handige links</h3>
+    <div class="link-list">
+      <a href="https://www.schafbergbahn.at/en/" target="_blank" class="btn-maps" style="width:100%;">🚂 SchafbergBahn reserveren</a>
+      <a href="https://dachstein-salzkammergut.com/en/" target="_blank" class="btn-maps" style="width:100%;background:var(--cp-link);color:var(--cp-surface);">🧊 Dachstein Krippenstein</a>
+      <a href="https://www.salzwelten.at/en/hallstatt" target="_blank" class="btn-maps" style="width:100%;">⛏️ Salzwelten Hallstatt</a>
+      <a href="https://www.wolfgangseeschifffahrt.at/en/" target="_blank" class="btn-maps" style="width:100%;">⛵ Wolfgangsee Schifffahrt</a>
+    </div>
+  </div>
+
+  <div class="map-section">
+    <div class="map-label">🗺️ Kaart: verblijf & handige punten</div>
+    <div class="map-wrap" id="mapInfo"></div>
+  </div>
+  <div class="notes-section"><div class="notes-label">📝 Notities</div><textarea class="notes-area" data-notes="info" placeholder="Typ hier je notities..."></textarea></div>
+</div>
+
+<div class="modal-overlay" id="easterModal">
+  <div class="modal-sheet">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-title">🇩🇪 Handig Duits voor kids!</div>
+    <p style="font-size:0.82rem;color:var(--cp-text-muted);margin-bottom:14px;">Klik op een categorie om de woorden te zien:</p>
+    <div id="wordCategories"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bingoModal">
+  <div class="modal-sheet">
+    <button class="modal-close" id="bingoClose">✕</button>
+    <div class="modal-title">🚗 Auto Bingo!</div>
+    <p style="font-size:0.82rem;color:var(--cp-text-muted);margin-bottom:14px;">Zie je het onderweg? Tik erop om af te vinken!</p>
+    <div id="bingoGrid" class="bingo-grid"></div>
+    <button id="bingoReset" class="bingo-reset-btn">🔄 Opnieuw beginnen</button>
+  </div>
+</div>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" data-tab="activiteiten"><span class="tab-icon">🎯</span><span class="tab-label">Activiteiten</span></button>
+  <button class="tab-btn" data-tab="fietsroutes"><span class="tab-icon">🚴</span><span class="tab-label">Fiets</span></button>
+  <button class="tab-btn" data-tab="wandelroutes"><span class="tab-icon">🥾</span><span class="tab-label">Wandelen</span></button>
+  <button class="tab-btn" data-tab="restaurants"><span class="tab-icon">🍽️</span><span class="tab-label">Restaurants</span></button>
+  <button class="tab-btn" data-tab="info"><span class="tab-icon">ℹ️</span><span class="tab-label">Info</span></button>
+</nav>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const photos = {
+  hallstatt: [], salzburg: [], hellbrunn: [], schafberg: [], dachstein: [], gosausee: [], badischl: [],
+  zwolferhorn: [], wolfgangsee: [], schlossort: [], postalmstrasse: [], gollinger: [], fuschlsee: [], mondsee: [], eisriesenwelt: []
+};
+
+const BASE_LOCATION = { lat: 47.7395, lng: 13.4483, name: 'St. Wolfgang', desc: 'Branntweinhäusl · hoofdverblijf' };
+
+const activities = [
+  { id:'hallstatt', name:'Hallstatt & Zoutmijn', emoji:'🏔️', summary:'UNESCO dorpje, Skywalk & oudste zoutmijn ter wereld!', description:'Iconisch dorpje met 800 inwoners. Bezoek de Skywalk Welterbeblick (300m boven dorp), de oudste zoutmijn (Salzwelten) met houten glijbanen, het bijzondere Beinhaus met 1200 beschilderde schedels, en de Waldbachstrub waterval. TIP: Ga vroeg (08:30)! Parkeren bij P2 Lahn.', priceAdult:'ca. € 40', priceKid:'ca. € 20', priceFamily:'ca. € 120', priceFamilyWP:'ca. € 120', wildpass:false, score:'⭐ 4.7', drive:'~45 min.', maps:'https://www.google.com/maps/search/Hallstatt+Salzwelten', subs:['🔭 Skywalk','⛏️ Zoutmijn','💀 Beinhaus','🌊 Waterval','🚡 Kabelbaan'], lat:47.5622, lng:13.6493 },
+  { id:'salzburg', name:'Salzburg Binnenstad', emoji:'🎵', summary:'Mozart, Getreidegasse & UNESCO werelderfgoed!', description:'UNESCO werelderfgoed. Getreidegasse met Mozarts geboortehuis, Dom van Salzburg, Residenzplatz, Schloss Mirabell met tuinen (gratis!). Tip: vroeg op pad (08:00-10:00) voor rust.', priceAdult:'€ 0-14', priceKid:'€ 0-7', priceFamily:'ca. € 30', priceFamilyWP:'ca. € 30', wildpass:false, score:'⭐ 4.8', drive:'~1u 15 min.', maps:'https://www.google.com/maps/search/Getreidegasse+Salzburg', indoor:true, subs:['🎵 Mozarthuis','⛪ Dom','🏰 Mirabell','🛍️ Getreidegasse'], lat:47.8005, lng:13.0440 },
+  { id:'hellbrunn', name:'Schloss Hellbrunn & Wasserspiele', emoji:'💦', summary:'Verrassende waterfonteinen – kids worden nat!', description:'Lustslot met beroemde Wasserspiele: fonteinen schieten onverwacht uit bankjes, beelden en hoekjes. Kinderen vinden het geweldig! Trek luchtige kleding aan. Park rondom slot is gratis.', priceAdult:'€ 16', priceKid:'€ 7,50', priceFamily:'ca. € 47', priceFamilyWP:'ca. € 47', wildpass:false, score:'⭐ 4.6', drive:'~1u 10 min.', maps:'https://www.google.com/maps/search/Schloss+Hellbrunn+Salzburg', lat:47.7627, lng:13.0607 },
+  { id:'schafberg', name:'SchafbergBahn St. Wolfgang', emoji:'🚂', summary:'Steilste tandradbaan van Oostenrijk – 1783m!', description:'Historische stoomtandradbaan sinds 1893. In 35 min naar de Schafberg (1783m) met 360° panorama over de meren. Reserveren is een must! Probeer de eerste trein. Berghut Himmelspforte voor Kaiserschmarrn.', priceAdult:'ca. € 48', priceKid:'ca. € 24', priceFamily:'ca. € 144', priceFamilyWP:'ca. € 144', wildpass:false, score:'⭐ 4.8', drive:'~10 min.', maps:'https://www.google.com/maps/search/SchafbergBahn+St.+Wolfgang', lat:47.7395, lng:13.4483 },
+  { id:'dachstein', name:'Dachstein Panorama & Grotten', emoji:'🧊', summary:'IJsgrot, Mammutgrot & gletsjer – spectaculair!', description:'Kabelbaanrit naar de Dachstein gletsjer. Bezoek de IJsgrot en Mammutgrot met rondleiding. UNESCO werelderfgoed. Alles-in-één ticket beschikbaar.', priceAdult:'€ 66,20', priceKid:'€ 36,40', priceFamily:'ca. € 205', priceFamilyWP:'ca. € 205', wildpass:false, score:'⭐ 4.7', drive:'~1u 15 min.', maps:'https://www.google.com/maps/search/Dachstein+Krippenstein+Seilbahn', indoor:true, subs:['🧊 IJsgrot','🦣 Mammutgrot','🚡 Kabelbaan','🏔️ Gletsjer'], lat:47.4553, lng:13.6069 },
+  { id:'gosausee', name:'Gosausee', emoji:'🏞️', summary:'Bergmeer met uitzicht op Dachstein gletsjer!', description:'Prachtig bergmeer aan de voet van de Dachstein gletsjer. Vlak wandelpad rondom het meer. Perfecte spiegeling van de bergen in het water. Ideaal voor een ontspannen middagje.', priceAdult:'€ 0', priceKid:'€ 0', priceFamily:'€ 0', priceFamilyWP:'€ 0', wildpass:false, score:'⭐ 4.8', drive:'~50 min.', maps:'https://www.google.com/maps/search/Gosausee', lat:47.5353, lng:13.5200 },
+  { id:'badischl', name:'Bad Ischl', emoji:'👑', summary:'Keizerlijke kuurstad – Kaiservilla, Zauner & Sisi!', description:'Keizerlijke kuurstad. Bezoek de Kaiservilla (zomerresidentie Franz Joseph & Sisi), wandel door het Kurpark, proef gebak bij Café Zauner (sinds 1832). SISSIKUSS conceptstore aan de Esplanade.', priceAdult:'ca. € 18', priceKid:'ca. € 10', priceFamily:'ca. € 56', priceFamilyWP:'ca. € 56', wildpass:false, score:'⭐ 4.5', drive:'~30 min.', maps:'https://www.google.com/maps/search/Kaiservilla+Bad+Ischl', indoor:true, subs:['👑 Kaiservilla','🍰 Café Zauner','💋 SISSIKUSS','🌳 Kurpark'], lat:47.7115, lng:13.6194 },
+  { id:'zwolferhorn', name:'Zwölferhorn Seilbahn', emoji:'🚡', summary:'Cabinelift naar 1522m in St. Gilgen!', description:'Moderne cabinelift in 11 min naar de Zwölferhorn (1522m). Panoramarestaurant met vlak terras bovenaan. Gondels zijn rolstoel-/rollatorvriendelijk. Uitzicht over Wolfgangsee.', priceAdult:'ca. € 32', priceKid:'ca. € 16', priceFamily:'ca. € 96', priceFamilyWP:'ca. € 96', wildpass:false, score:'⭐ 4.5', drive:'~20 min.', maps:'https://www.google.com/maps/search/Zwölferhorn+Seilbahn+St.+Gilgen', lat:47.7650, lng:13.3650 },
+  { id:'wolfgangsee', name:'Wolfgangsee Bootrondvaart', emoji:'⛵', summary:'Boottocht over het turquoise meer!', description:'Vaarroute tussen St. Wolfgang, St. Gilgen en Strobl. Onderweg uitstappen, wandelen, terrasje pakken en weer verder varen. Combineerbaar met SchafbergBahn ticket.', priceAdult:'ca. € 15', priceKid:'ca. € 8', priceFamily:'ca. € 46', priceFamilyWP:'ca. € 46', wildpass:false, score:'⭐ 4.6', drive:'~10 min.', maps:'https://www.google.com/maps/search/Wolfgangsee+Schifffahrt', lat:47.7400, lng:13.4500 },
+  { id:'schlossort', name:'Schloss Ort & Baumwipfelpfad', emoji:'🏰', summary:'Waterkasteel + boomtoppenwandeling in Gmunden!', description:'Schilderachtig waterkasteel op eiland in Traunsee (120m houten brug). Plus het Baumwipfelpfad Salzkammergut op de Grünberg: wandeltocht door boomtoppen met uitkijktoren. Toegankelijk met kinderwagen!', priceAdult:'ca. € 15', priceKid:'ca. € 8', priceFamily:'ca. € 46', priceFamilyWP:'ca. € 46', wildpass:false, score:'⭐ 4.5', drive:'~50 min.', maps:'https://www.google.com/maps/search/Schloss+Ort+Gmunden', subs:['🏰 Waterkasteel','🌲 Baumwipfelpfad','👀 Uitkijktoren'], lat:47.9008, lng:13.7859 },
+  { id:'postalmstrasse', name:'Postalmstraße Panoramaweg', emoji:'🛣️', summary:'28km panoramaweg door de Alpen – spectaculair!', description:'Panoramische bergweg van 28,5km van Strobl naar Abtenau. Uitzicht over Dachsteinmassief en alpenweides. Betalen alleen cash! Korting na 16:30.', priceAdult:'ca. € 7', priceKid:'€ 0', priceFamily:'ca. € 14', priceFamilyWP:'ca. € 14', wildpass:false, score:'⭐ 4.4', drive:'~25 min.', maps:'https://www.google.com/maps/search/Postalmstraße+Strobl', lat:47.7200, lng:13.4800 },
+  { id:'gollinger', name:'Gollinger Wasserfall', emoji:'💧', summary:'75 meter hoge waterval – verfrissend op warme dagen!', description:'Spectaculaire 75m hoge waterval van de Schwarzbach. Via aangelegde weg met trappen naar de top. Stevige wandelschoenen aan! Kan glad zijn. Aansluitend op Postalmstraße.', priceAdult:'ca. € 5', priceKid:'ca. € 2,50', priceFamily:'ca. € 15', priceFamilyWP:'ca. € 15', wildpass:false, score:'⭐ 4.6', drive:'~40 min.', maps:'https://www.google.com/maps/search/Gollinger+Wasserfall', lat:47.5897, lng:13.1647 },
+  { id:'fuschlsee', name:'Fuschlsee & Schloss Fuschl', emoji:'🏊', summary:'Rustig bergmeer met kasteel – SUP, kajak & zwemmen!', description:'Rustig bergmeer nabij de Wolfgangsee, niet overspoeld door toeristen. SUP, bootje of kajak huren. Geleidelijke oever, fijn voor kinderen. Schloss Fuschl (1450) aan het meer. Schloss Fuschl Fischerei voor gerookte vis!', priceAdult:'€ 0', priceKid:'€ 0', priceFamily:'€ 0', priceFamilyWP:'€ 0', wildpass:false, score:'⭐ 4.7', drive:'~30 min.', maps:'https://www.google.com/maps/search/Fuschlsee', lat:47.7950, lng:13.3050 },
+  { id:'mondsee', name:'Mondsee & Drachenwand', emoji:'🐉', summary:'Prehistorisch meer, basiliek & wandelingen!', description:'Dorp met 1000 jaar geschiedenis. Basiliek van St. Michael, Drachenwand voor uitzicht. Watersport op het meer. Irrsee ernaast is beschermd – prachtige oeverwandeling.', priceAdult:'€ 0', priceKid:'€ 0', priceFamily:'€ 0', priceFamilyWP:'€ 0', wildpass:false, score:'⭐ 4.5', drive:'~35 min.', maps:'https://www.google.com/maps/search/Mondsee+Oberösterreich', lat:47.8567, lng:13.3495 },
+  { id:'eisriesenwelt', name:'Eisriesenwelt IJsgrot Werfen', emoji:'❄️', summary:'Grootste ijsgrot ter wereld – 42km gangenstelsel!', description:'Grootste ijsgrot ter wereld in Werfen. 42km aan tunnels. Rondleiding door ijsformaties: Posselt toren, Hymirs Kasteel, Friggas sluier, het IJspaleis. Alleen mei-oktober. Lange wandeling naar de grot.', priceAdult:'ca. € 30', priceKid:'ca. € 15', priceFamily:'ca. € 90', priceFamilyWP:'ca. € 90', wildpass:false, score:'⭐ 4.6', drive:'~1u 30 min.', maps:'https://www.google.com/maps/search/Eisriesenwelt+Werfen', indoor:true, lat:47.5022, lng:13.1900 }
+];
+
+const fietsroutes = [
+  { id:'salzach-salzburg', name:'Salzach-Radweg → Salzburg', emoji:'🚴', location:'Laufen (Salzach)', description:'Vlak en grotendeels autovrij langs de Salzach. Van historische Altstadt Laufen naar barokstad Salzburg. Rustige natuurgebieden en uiterwaarden.', stats:['20-22 km','Vlak','Autovrij'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Salzach+Radweg+Laufen+Salzburg', lat:47.9381, lng:12.9373 },
+  { id:'salzach-tittmoning', name:'Salzach → Tittmoning & Burghausen', emoji:'🏰', location:'Laufen (Salzach)', description:'Stroomafwaarts langs de Salzach. Tittmoning met historisch stadsplein en burcht. Doortrappen naar Burghausen: langste burcht van de wereld!', stats:['20-40 km','Vlak/licht glooiend','Burchten'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Tittmoning+Salzachradweg', lat:48.0633, lng:12.7667 },
+  { id:'abtsdorfer-see', name:'Rondje Abtsdorfer See', emoji:'🏊', location:'Laufen (Rupertiwinkel)', description:'Licht glooiend over rustige binnendoorweggetjes. Warmste meer van Beieren! Beschermd natuurgebied Haarmoos. Zwemmen en terrasjes onderweg.', stats:['15-25 km','Licht glooiend','Zwemmen!'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Abtsdorfer+See', lat:47.9167, lng:12.8833 },
+  { id:'bajuwaren', name:'Bajuwaren-Radweg → Waginger See', emoji:'🏞️', location:'Laufen (Rupertiwinkel)', description:'Cultuur-historische route langs oude Bajuwaarse opgravingen. Glooiend door typisch Beiers boerenlandschap naar de Waginger See.', stats:['30-35 km','Glooiend','Historisch'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Waginger+See+Radweg', lat:47.9333, lng:12.7500 },
+  { id:'stille-nacht', name:'Oberndorfer & Stille-Nacht-Runde', emoji:'🎵', location:'Laufen → Oberndorf (AT)', description:'Via Alte Salzachbrücke naar Oberndorf. Stille-Nacht-Kapelle (waar het kerstlied ontstond). Doorrijden naar Michaelbeuern of Mattsee.', stats:['25-35 km','Licht glooiend','Grensoverschrijdend'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Stille+Nacht+Kapelle+Oberndorf', lat:47.9414, lng:12.9378 },
+  { id:'burmooser', name:'Bürmooser See Rondtocht', emoji:'🌊', location:'Oberndorf Bahnhof', description:'Rondtocht vanuit Oberndorf Bahnhof via de Bürmooser See met uitzicht op de Untersberg.', stats:['~20 km','Licht','Uitzicht Untersberg'], period:'Laufen (6-9 aug)', maps:'https://www.google.com/maps/search/Bürmooser+See', lat:47.9800, lng:12.9200 },
+  { id:'stwolfgang-fiets', name:'St. Wolfgang → Salzkontor', emoji:'🧂', location:'St. Wolfgang', description:'Fietsroute van Radau bij St. Wolfgang naar het historische Salzkontor in St. Wolfgang.', stats:['~15 km','Gemiddeld','Langs het meer'], period:'St. Wolfgang (9-23 aug)', maps:'https://www.google.com/maps/search/St.+Wolfgang+Salzkontor', lat:47.7395, lng:13.4483 }
+];
+
+const wandelroutes = [
+  { id:'echerntal', name:'Echerntal Theme Trail', emoji:'🌊', location:'Hallstatt (P2)', description:'Gezinsvriendelijke wandeling langs bergstromen naar de imposante Waldbachstrub waterval en Gletsjertuin. Informatieborden over natuur en schilders.', stats:['5,8 km','~2,5 uur','253 hm'], maps:'https://www.google.com/maps/search/Echerntal+Hallstatt', lat:47.5500, lng:13.6400 },
+  { id:'gosausee-walk', name:'Rondje Vorderer Gosausee', emoji:'🏔️', location:'Gosau', description:'Vlak en breed wandelpad rondom de Vorderer Gosausee. Direct uitzicht op de Dachstein gletsjer die weerspiegelt in het meer. Bankjes onderweg.', stats:['~3,5 km','~1 uur','Vlak'], maps:'https://www.google.com/maps/search/Vorderer+Gosausee', lat:47.5353, lng:13.5200 },
+  { id:'hallstattersee', name:'Rondwandeling Hallstätter See', emoji:'🌅', location:'Obertraun', description:'Rustige wandelpromenade langs de oostelijke oever. Vlak pad langs het water met zicht op Hallstatt aan de overkant. Rustiger alternatief dan het drukke Hallstatt zelf.', stats:['~5 km','~1,5 uur','Vlak'], maps:'https://www.google.com/maps/search/Hallstätter+See+Obertraun', lat:47.5622, lng:13.6493 },
+  { id:'schafberg-walk', name:'Schafberg Wandeling', emoji:'⛰️', location:'St. Wolfgang', description:'Te voet naar de top van de Schafberg (1783m). Stevig maar lonend. Alternatie: tandradbaan omhoog, wandelen omlaag.', stats:['~6 km','~3,5 uur','1190 hm'], maps:'https://www.google.com/maps/search/Schafberg+wandeling+St.+Wolfgang', lat:47.7750, lng:13.4350 },
+  { id:'baumwipfel', name:'Baumwipfelpfad Salzkammergut', emoji:'🌲', location:'Gmunden (Grünberg)', description:'Wandeltocht door de boomtoppen op de Grünberg in Gmunden. Panorama uitkijktoren. Volledig toegankelijk met kinderwagen!', stats:['~1,5 km','~45 min','Vlak'], maps:'https://www.google.com/maps/search/Baumwipfelpfad+Salzkammergut', lat:47.9008, lng:13.7859 },
+  { id:'5fingers', name:'5 Fingers Uitkijkpunt', emoji:'🖐️', location:'Obertraun (Krippenstein)', description:'5 platforms die als vingers uit de bergtop steken, 400m boven de Hallstättersee. Één vinger heeft glazen bodem! Kabelbaan omhoog, dan 20 min wandelen.', stats:['~1 km','~20 min','Spectaculair!'], maps:'https://www.google.com/maps/search/5+Fingers+Krippenstein', lat:47.5400, lng:13.6800 }
+];
+
+const restaurants = [
+  { cat:'koffie', name:'Café Konditorei Zauner', type:'Konditorei', reach:'Bad Ischl (~30 min.)', score:'4.7', reviews:'2800+', price:'€8–€18', desc:'Sinds 1832! Beroemde Zaunerstollen. Chique & elegant. Een must!', maps:'https://www.google.com/maps/search/Cafe+Zauner+Bad+Ischl', lat:47.7121, lng:13.6217 },
+  { cat:'koffie', name:'SISSIKUSS', type:'Conceptstore & Koffie', reach:'Bad Ischl (~30 min.)', score:'4.6', reviews:'200+', price:'€4–€10', desc:'Historisch muziekpaviljoen aan de Esplanade. Trendy cadeautjes & koffie.', maps:'https://www.google.com/maps/search/SISSIKUSS+Bad+Ischl', lat:47.7124, lng:13.6210 },
+  { cat:'restaurant', name:'Himmelspforte', type:'Berghut', reach:'Schafberg (tandradbaan)', score:'4.5', reviews:'300+', price:'€12–€22', desc:'Kaiserschmarrn & Apfelstrudel met het allermooiste uitzicht!', maps:'https://www.google.com/maps/search/Himmelspforte+Schafberg', lat:47.7710, lng:13.4328 },
+  { cat:'restaurant', name:'Schloss Fuschl Fischerei', type:'Vis', reach:'Fuschlsee (~30 min.)', score:'4.6', reviews:'400+', price:'€15–€30', desc:'Gerookte vis aan het helderblauwe water. Onovertroffen!', maps:'https://www.google.com/maps/search/Schloss+Fuschl+Fischerei', lat:47.7979, lng:13.3047 },
+  { cat:'restaurant', name:'Das SEE', type:'Lounge & Restaurant', reach:'Fuschl am See (~30 min.)', score:'4.5', reviews:'350+', price:'€12–€25', desc:'Dé plek voor een sundowner am See. Must-See am See!', maps:'https://www.google.com/maps/search/Das+SEE+Fuschl+am+See', lat:47.7964, lng:13.3041 },
+  { cat:'restaurant', name:'Seehotel Grüner Baum', type:'Fine dining & Vis', reach:'Hallstatt (~45 min.)', score:'4.4', reviews:'500+', price:'€20–€45', desc:'Sinds 1700. Versgevangen vis uit het meer. Panoramisch terras.', maps:'https://www.google.com/maps/search/Seehotel+Grüner+Baum+Hallstatt', lat:47.5617, lng:13.6496 },
+  { cat:'lokaal', name:'Im Weissen Rössl', type:'Traditioneel Oostenrijks', reach:'St. Wolfgang (~10 min.)', score:'4.3', reviews:'600+', price:'€15–€35', desc:'Het beroemde Witte Paard! Terras aan het meer.', maps:'https://www.google.com/maps/search/Im+Weissen+Rössl+St.+Wolfgang', lat:47.7397, lng:13.4457 },
+  { cat:'lokaal', name:'Gasthof Falkenstein', type:'Traditioneel', reach:'St. Wolfgang (~5 min.)', score:'4.5', reviews:'200+', price:'€12–€25', desc:'Lokale Beierse/Oostenrijkse keuken, gezellige sfeer.', maps:'https://www.google.com/maps/search/Gasthof+Falkenstein+St.+Wolfgang', lat:47.7391, lng:13.4476 }
+];
+
+const activityMarkers = activities.map(a => ({ lat:a.lat, lng:a.lng, name:`${a.emoji} ${a.name}`, desc:`${a.drive} · ${a.summary}` }));
+const fietsMarkers = [
+  { lat:47.9381, lng:12.9373, name:'🚴 Laufen', desc:'Startpunt Salzach-routes' },
+  { lat:48.0633, lng:12.7667, name:'🏰 Tittmoning', desc:'Burcht & historisch centrum' },
+  { lat:47.9167, lng:12.8833, name:'🏊 Abtsdorfer See', desc:'Zwemstop' },
+  { lat:47.9333, lng:12.7500, name:'🏞️ Waginger See', desc:'Bajuwaren-Radweg' },
+  { lat:47.9414, lng:12.9378, name:'🎵 Oberndorf', desc:'Stille-Nacht-Kapelle' },
+  { lat:47.9800, lng:12.9200, name:'🌊 Bürmoos', desc:'Bürmooser See' },
+  { lat:47.7395, lng:13.4483, name:'🧂 St. Wolfgang', desc:'Fietsroute bij het meer' }
+];
+const wandelMarkers = [
+  { lat:47.5500, lng:13.6400, name:'🌊 Echerntal', desc:'Waldbachstrub & Gletsjertuin' },
+  { lat:47.5353, lng:13.5200, name:'🏔️ Gosausee', desc:'Rondje meer' },
+  { lat:47.5622, lng:13.6493, name:'🌅 Hallstätter See', desc:'Rustige oeverwandeling' },
+  { lat:47.7750, lng:13.4350, name:'⛰️ Schafberg', desc:'Topwandeling' },
+  { lat:47.9008, lng:13.7859, name:'🌲 Baumwipfelpfad', desc:'Grünberg Gmunden' },
+  { lat:47.5400, lng:13.6800, name:'🖐️ 5 Fingers', desc:'Uitzichtspunt' }
+];
+const restaurantMarkers = restaurants.map(r => ({ lat:r.lat, lng:r.lng, name:r.name, desc:`${r.type} · ⭐ ${r.score}`, cat:r.cat }));
+const infoMarkers = [
+  { lat:47.7395, lng:13.4483, name:'📍 St. Wolfgang', desc:'Hoofdverblijf' },
+  { lat:47.7395, lng:13.4483, name:'🚂 SchafbergBahn', desc:'Reserveren aanbevolen' },
+  { lat:47.5620, lng:13.6510, name:'🅿️ Hallstatt P2 Lahn', desc:'Vroeg komen' },
+  { lat:47.4553, lng:13.6069, name:'🧊 Dachstein Krippenstein', desc:'Panorama & grotten' },
+  { lat:47.8005, lng:13.0440, name:'🎵 Salzburg', desc:'Vroeg op pad / P+R' },
+  { lat:47.7200, lng:13.4800, name:'🛣️ Postalmstraße', desc:'Cash meenemen' },
+  { lat:47.7115, lng:13.6194, name:'🍰 Bad Ischl', desc:'Zauner & Kaiservilla' }
+];
+
+const germanWords = [
+  { category: '👋 Begroeting & Beleefd', words: [
+    ['Hallo','Hallo / Grüß Gott','Hallo / Grüss Got'], ['Goedemorgen','Guten Morgen','Goeten Morgen'], ['Goedemiddag','Guten Tag','Goeten Taag'], ['Goedenavond','Guten Abend','Goeten Aabent'], ['Doei!','Tschüss!','Tsjüss!'], ['Alsjeblieft','Bitte','Bitte'], ['Dankjewel','Danke schön','Danke sjön'], ['Sorry','Entschuldigung','Ent-sjoel-di-goeng'], ['Ja / Nee','Ja / Nein','Jaa / Nain'], ['Spreekt u Engels?','Sprechen Sie Englisch?','Sjprechen Zie Englisj?']
+  ]},
+  { category: '🍽️ In het restaurant', words: [
+    ['De menukaart','Die Speisekarte','Die Sjpaize-karte'], ['Ik wil graag...','Ich möchte gerne...','Ieg meugte gerne...'], ['De rekening','Die Rechnung','Die Reegh-noeng'], ['Water','Wasser','Vasser'], ['Appelsap','Apfelsaft','Apfel-zaft'], ['IJs','Eis','Ais'], ['Pizza','Pizza','Pitsa'], ['Patat / Friet','Pommes','Pommes'], ['Schnitzel','Schnitzel','Sjnitsel'], ['Lekker!','Lecker!','Lekker!'], ['Nog eentje?','Noch eins?','Nog ains?']
+  ]},
+  { category: '⛰️ Op de berg', words: [
+    ['Berg','Berg','Bèrg'], ['Dal','Tal','Taal'], ['Meertje','See','Zey'], ['Beek','Bach','Bagg (keelklank)'], ['Bos','Wald','Valt'], ['Wandelpad','Wanderweg','Vander-veyg'], ['Kabelbaan','Seilbahn','Zail-baan'], ['Speelplaats','Spielplatz','Sjpiel-plats'], ['Zwembad','Schwimmbad','Sjvim-baat'], ['Glijbaan','Rutsche','Roet-sje'], ['Waterval','Wasserfall','Vasser-fal'], ['Uitzichtpunt','Aussichtspunkt','Aus-zigts-poenkt']
+  ]},
+  { category: '🔢 Getallen', words: [
+    ['1 – Één','Eins','Ains'], ['2 – Twee','Zwei','Tsvai'], ['3 – Drie','Drei','Drai'], ['4 – Vier','Vier','Fier'], ['5 – Vijf','Fünf','Fünnef'], ['6 – Zes','Sechs','Zex'], ['7 – Zeven','Sieben','Zieben'], ['8 – Acht','Acht','Acht (keel)'], ['9 – Negen','Neun','Noin'], ['10 – Tien','Zehn','Tseyn']
+  ]},
+  { category: '🧭 Richtingen', words: [
+    ['Links','Links','Links'], ['Rechts','Rechts','Reggts'], ['Rechtdoor','Geradeaus','Geraade-aus'], ['Waar is...?','Wo ist...?','Voo ist...?'], ['Dichtbij','In der Nähe','In der Nèè-uh'], ['Ver weg','Weit weg','Vait veg'], ['Parkeerplaats','Parkplatz','Park-plats'], ['Ingang','Eingang','Ain-gang'], ['Uitgang','Ausgang','Aus-gang']
+  ]},
+  { category: '🆘 Noodgevallen', words: [
+    ['Help!','Hilfe!','Hilfe!'], ['Ik heb pijn','Ich habe Schmerzen','Ieg haabe Sjmertsen'], ['Ziekenhuis','Krankenhaus','Kranken-haus'], ['Apotheek','Apotheke','Apo-teeke'], ['WC / Toilet','Toilette','Twa-lette'], ['Hoeveel kost dit?','Wie viel kostet das?','Vie fiel kostet das?'], ['Gratis','Kostenlos','Kosten-loos'], ['Kinderen','Kinder','Kinder'], ['Gezin','Familie','Fa-mielje']
+  ]}
+];
+
+const STATE_KEY = 'salzkammergut_state';
+let state = JSON.parse(localStorage.getItem(STATE_KEY) || '{}');
+function saveState() { localStorage.setItem(STATE_KEY, JSON.stringify(state)); }
+
+const themeBtn = document.getElementById('themeToggle');
+const themeMeta = document.querySelector('meta[name="theme-color"]');
+function updateThemeIcon() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  themeBtn.textContent = isDark ? '☀️' : '🌙';
+  themeMeta.setAttribute('content', isDark ? '#292929' : '#b11f4b');
+}
+updateThemeIcon();
+themeBtn.addEventListener('click', () => {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const t = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('salzkammergut_theme', t);
+  updateThemeIcon();
+  themeBtn.classList.add('pop-inline');
+  setTimeout(() => themeBtn.classList.remove('pop-inline'), 300);
+});
+
+let eggClicks = 0, eggTimer = null;
+document.getElementById('titleEgg').addEventListener('click', () => {
+  eggClicks++;
+  if (eggTimer) clearTimeout(eggTimer);
+  if (eggClicks >= 3) {
+    eggClicks = 0;
+    document.getElementById('titleEgg').classList.add('shake');
+    setTimeout(() => document.getElementById('titleEgg').classList.remove('shake'), 400);
+    showEasterEgg();
+  } else {
+    eggTimer = setTimeout(() => eggClicks = 0, 800);
+  }
+});
+function showEasterEgg() {
+  const c = document.getElementById('wordCategories');
+  c.innerHTML = '';
+  germanWords.forEach(cat => {
+    const div = document.createElement('div');
+    div.className = 'word-category';
+    div.innerHTML = `<div class="word-cat-header">${cat.category} <span class="arrow">▼</span></div><div class="word-cat-body"><div class="word-row hdr"><span>Nederlands</span><span>Duits</span><span>Uitspraak</span></div>${cat.words.map(w => `<div class="word-row"><span>${w[0]}</span><span>${w[1]}</span><span class="pron">${w[2]}</span></div>`).join('')}</div>`;
+    div.querySelector('.word-cat-header').addEventListener('click', () => div.classList.toggle('open'));
+    c.appendChild(div);
+  });
+  document.getElementById('easterModal').classList.add('active');
+}
+document.getElementById('modalClose').addEventListener('click', () => document.getElementById('easterModal').classList.remove('active'));
+document.getElementById('easterModal').addEventListener('click', e => { if (e.target === e.currentTarget) document.getElementById('easterModal').classList.remove('active'); });
+
+let maps = {};
+let mapsInitialized = { activiteiten:false, fietsroutes:false, wandelroutes:false, restaurants:false, info:false };
+function initMapForTab(tab) {
+  if (mapsInitialized[tab]) {
+    if (maps[tab]) maps[tab].invalidateSize();
+    return;
+  }
+  mapsInitialized[tab] = true;
+  setTimeout(() => {
+    if (tab === 'activiteiten') maps.activiteiten = createMap('mapActiviteiten', activityMarkers, null);
+    if (tab === 'fietsroutes') maps.fietsroutes = createMap('mapFietsroutes', fietsMarkers, 10);
+    if (tab === 'wandelroutes') maps.wandelroutes = createMap('mapWandelroutes', wandelMarkers, 10);
+    if (tab === 'restaurants') maps.restaurants = createRestoMap('mapRestaurants');
+    if (tab === 'info') maps.info = createMap('mapInfo', infoMarkers, 10);
+  }, 100);
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('sec-' + btn.dataset.tab).classList.add('active');
+    document.getElementById('progressWrap').style.display = btn.dataset.tab === 'activiteiten' ? 'block' : 'none';
+    window.scrollTo(0, 0);
+    initMapForTab(btn.dataset.tab);
+  });
+});
+
+function renderCarousel(photoArr, title) {
+  if (!photoArr.length) {
+    return `<div class="carousel-wrap"><div class="carousel-item"><div class="carousel-placeholder"><div style="font-size:2rem;">📷</div><strong>Foto's volgen later</strong><span>${title}</span></div></div></div>`;
+  }
+  return `<div class="carousel-wrap">${photoArr.map(u => `<div class="carousel-item"><img src="${u}" alt="${title}" loading="lazy"></div>`).join('')}</div>`;
+}
+
+function updateProgress() {
+  const total = activities.length, done = activities.filter(a => state[a.id]).length;
+  document.getElementById('progressText').textContent = `${done}/${total}`;
+  document.getElementById('progressFill').style.width = `${done / total * 100}%`;
+  document.getElementById('progressWrap').style.display = 'block';
+}
+let filterIndoor = false;
+function renderActivities() {
+  const list = document.getElementById('activityList');
+  list.innerHTML = '';
+  const filtered = filterIndoor ? activities.filter(a => a.indoor) : activities;
+  filtered.forEach(a => {
+    const checked = state[a.id] ? 'checked' : '';
+    const isFree = a.priceFamilyWP.includes('gratis') || a.priceFamilyWP === '€ 0';
+    const packageLabel = a.wildpass ? 'Mét kaart' : 'Gezinspakket';
+    const card = document.createElement('div');
+    card.className = `activity-card ${checked}`;
+    card.innerHTML = `
+      <div class="activity-header">
+        <div class="activity-checkbox" data-id="${a.id}">${state[a.id] ? '✓' : ''}</div>
+        <div class="activity-info"><div class="activity-name">${a.emoji} ${a.name}${a.indoor ? '<span class="indoor-badge">INDOOR</span>' : ''}</div><div class="activity-summary">${a.drive ? '🚗 ' + a.drive + ' · ' : ''}${a.summary}</div></div>
+        <span class="activity-price-badge ${isFree ? 'free' : ''}">${isFree ? 'GRATIS' : a.priceFamilyWP}</span>
+        <button class="activity-expand-btn">▼</button>
+      </div>
+      <div class="activity-detail"><div class="activity-detail-inner">
+        <div class="detail-description">${a.description}</div>
+        ${renderCarousel(photos[a.id] || [], a.name)}
+        <div class="detail-grid">
+          <div class="detail-item"><div class="label">Volwassene</div><div class="value">${a.priceAdult}</div></div>
+          <div class="detail-item"><div class="label">Kind (9j)</div><div class="value">${a.priceKid}</div></div>
+          <div class="detail-item"><div class="label">Gezin</div><div class="value">${a.priceFamily}</div></div>
+          <div class="detail-item"><div class="label">${packageLabel}</div><div class="value ${isFree ? 'free-val' : ''}">${a.priceFamilyWP}</div></div>
+          <div class="detail-item" style="grid-column:span 2"><div class="label">🚗 Rijden vanaf St. Wolfgang</div><div class="value">${a.drive}</div></div>
+        </div>
+        ${a.score ? `<div style="font-size:0.82rem;color:var(--cp-text-muted);margin-bottom:12px">${a.score}</div>` : ''}
+        ${a.subs ? `<div class="sub-activities">${a.subs.map(s => `<span class="sub-chip">${s}</span>`).join('')}</div>` : ''}
+        <a href="${a.maps}" target="_blank" class="btn-maps" style="width:100%">📍 Open in Google Maps</a>
+      </div></div>`;
+    list.appendChild(card);
+  });
+  list.querySelectorAll('.activity-checkbox').forEach(cb => {
+    cb.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = cb.dataset.id;
+      state[id] = !state[id];
+      saveState();
+      cb.textContent = state[id] ? '✓' : '';
+      cb.closest('.activity-card').classList.toggle('checked', state[id]);
+      if (state[id]) cb.classList.add('pop-inline');
+      setTimeout(() => cb.classList.remove('pop-inline'), 300);
+      updateProgress();
+    });
+  });
+  list.querySelectorAll('.activity-expand-btn').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); b.closest('.activity-card').classList.toggle('expanded'); }));
+  list.querySelectorAll('.activity-info').forEach(i => i.addEventListener('click', () => i.closest('.activity-card').classList.toggle('expanded')));
+  updateProgress();
+}
+
+function toneClass(index) { return `tone-${(index % 4) + 1}`; }
+function renderRoutes(targetId, items, badgeText) {
+  const list = document.getElementById(targetId);
+  list.innerHTML = '';
+  items.forEach((route, index) => {
+    const card = document.createElement('div');
+    card.className = 'route-card';
+    card.innerHTML = `
+      <div class="route-header">
+        <div class="route-icon ${toneClass(index)}">${route.emoji}</div>
+        <div class="route-info"><div class="route-name">${route.name}</div><div class="route-location">📍 ${route.location}</div></div>
+        <span class="route-badge">${badgeText}</span>
+        <button class="route-expand-btn">▼</button>
+      </div>
+      <div class="route-detail"><div class="route-detail-inner">
+        ${route.period ? `<div class="sub-activities"><span class="route-period-chip">📅 ${route.period}</span></div>` : ''}
+        <div class="route-description">${route.description}</div>
+        <div class="route-stats">${route.stats.map(s => `<span class="route-stat">${s}</span>`).join('')}</div>
+        <div style="margin-top:12px;"><a href="${route.maps}" target="_blank" class="btn-maps" style="width:100%">📍 Routepunt openen</a></div>
+      </div></div>`;
+    card.querySelector('.route-header').addEventListener('click', e => {
+      if (e.target.closest('a')) return;
+      card.classList.toggle('expanded');
+    });
+    list.appendChild(card);
+  });
+}
+
+function renderRestaurants() {
+  const list = document.getElementById('restaurantList');
+  list.innerHTML = '';
+  [{key:'lokaal',label:'🏠 Lokaal bij St. Wolfgang'},{key:'restaurant',label:'🍽️ Restaurants'},{key:'koffie',label:'☕ Koffie & Gebak'}].forEach(cat => {
+    const items = restaurants.filter(r => r.cat === cat.key);
+    if (!items.length) return;
+    const group = document.createElement('div');
+    group.className = 'category-group';
+    const h = document.createElement('div');
+    h.className = 'category-header';
+    h.innerHTML = `${cat.label}<span class="cat-count">${items.length}</span><span class="cat-arrow">▼</span>`;
+    h.addEventListener('click', () => {
+      group.classList.toggle('open');
+      h.classList.toggle('open');
+      if (group.classList.contains('open')) openRestoCats.add(cat.key); else openRestoCats.delete(cat.key);
+      updateRestoMap();
+    });
+    group.appendChild(h);
+    const itemsWrap = document.createElement('div');
+    itemsWrap.className = 'category-items';
+    items.forEach(r => {
+      const c = document.createElement('div');
+      c.className = 'resto-card';
+      c.innerHTML = `<div class="resto-left"><div class="resto-top"><div class="resto-name">${r.name}</div><span class="resto-score">⭐ ${r.score}</span></div><div class="resto-type">${r.type} · ${r.reach}</div></div><div class="resto-expand"><div style="padding:8px 0 10px"><div class="resto-desc">${r.desc}</div><div class="resto-meta"><span class="resto-meta-item">💰 ${r.price}</span><span class="resto-meta-item">📝 ${r.reviews} reviews</span></div><div style="margin-top:8px"><a href="${r.maps}" target="_blank" class="btn-maps" style="width:auto;padding:6px 12px;font-size:0.75rem">📍 Maps</a></div></div></div>`;
+      c.addEventListener('click', e => { if (e.target.closest('a')) return; c.classList.toggle('expanded'); });
+      itemsWrap.appendChild(c);
+    });
+    group.appendChild(itemsWrap);
+    list.appendChild(group);
+  });
+}
+
+const redIcon = L.icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+});
+let restoMap = null;
+let restoLayerGroup = null;
+let openRestoCats = new Set();
+function createRestoMap(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  restoMap = L.map(el, { scrollWheelZoom: false, dragging: true, zoomControl: true });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 17 }).addTo(restoMap);
+  restoLayerGroup = L.layerGroup().addTo(restoMap);
+  L.marker([BASE_LOCATION.lat, BASE_LOCATION.lng], { icon: redIcon }).bindPopup(`<strong>📍 ${BASE_LOCATION.name}</strong><br>${BASE_LOCATION.desc}`).bindTooltip(BASE_LOCATION.name, { permanent: true, direction: 'right', className: 'haus-tooltip', offset: [12, -20] }).addTo(restoMap);
+  restoMap.setView([BASE_LOCATION.lat, BASE_LOCATION.lng], 13);
+  return restoMap;
+}
+function updateRestoMap() {
+  if (!restoMap || !restoLayerGroup) return;
+  restoLayerGroup.clearLayers();
+  const visibleMarkers = restaurantMarkers.filter(m => openRestoCats.has(m.cat));
+  if (!visibleMarkers.length) {
+    restoMap.setView([BASE_LOCATION.lat, BASE_LOCATION.lng], 13);
+    return;
+  }
+  const group = L.featureGroup();
+  visibleMarkers.forEach(m => {
+    const marker = L.marker([m.lat, m.lng]).bindPopup(`<strong>${m.name}</strong><br>${m.desc}`).bindTooltip(m.name, { permanent: true, direction: 'right', className: 'marker-label', offset: [5, -14] });
+    restoLayerGroup.addLayer(marker);
+    group.addLayer(L.marker([m.lat, m.lng]));
+  });
+  restoMap.fitBounds(group.getBounds().pad(0.15));
+}
+function createMap(containerId, markers, zoom) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const map = L.map(el, { scrollWheelZoom: false, dragging: true, zoomControl: true });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 17 }).addTo(map);
+  const group = L.featureGroup();
+  markers.forEach(m => {
+    const marker = L.marker([m.lat, m.lng]).bindPopup(`<strong>${m.name}</strong><br>${m.desc}`).bindTooltip(m.name, { permanent: true, direction: 'right', className: 'marker-label', offset: [5, -14] });
+    group.addLayer(marker);
+  });
+  group.addTo(map);
+  L.marker([BASE_LOCATION.lat, BASE_LOCATION.lng], { icon: redIcon }).bindPopup(`<strong>📍 ${BASE_LOCATION.name}</strong><br>${BASE_LOCATION.desc}`).bindTooltip(BASE_LOCATION.name, { permanent: true, direction: 'right', className: 'haus-tooltip', offset: [12, -20] }).addTo(map);
+  if (zoom) {
+    map.setView(group.getBounds().getCenter(), zoom);
+  } else if (markers.length > 1) {
+    map.fitBounds(group.getBounds().pad(0.1));
+  } else {
+    map.setView([markers[0].lat, markers[0].lng], 14);
+  }
+  return map;
+}
+
+renderActivities();
+renderRoutes('fietsList', fietsroutes, 'Fiets');
+renderRoutes('wandelList', wandelroutes, 'Wandelen');
+renderRestaurants();
+setTimeout(() => initMapForTab('activiteiten'), 200);
+document.getElementById('filterBadWeather').addEventListener('click', function() {
+  filterIndoor = !filterIndoor;
+  this.classList.toggle('active', filterIndoor);
+  renderActivities();
+});
+
+document.querySelectorAll('.notes-area').forEach(ta => {
+  const key = 'salzkammergut_notes_' + ta.dataset.notes;
+  ta.value = localStorage.getItem(key) || '';
+  ta.addEventListener('input', () => localStorage.setItem(key, ta.value));
+});
+
+const allOptions = [
+  ...activities.map(a => ({ emoji:a.emoji, name:a.name, desc:a.summary, maps:a.maps, type:'activiteit' })),
+  ...fietsroutes.map(r => ({ emoji:r.emoji, name:r.name, desc:r.description.substring(0, 80) + '...', maps:r.maps, type:'fietsroute' })),
+  ...wandelroutes.map(r => ({ emoji:r.emoji, name:r.name, desc:r.description.substring(0, 80) + '...', maps:r.maps, type:'wandeling' })),
+  ...restaurants.map(r => ({ emoji:r.cat === 'koffie' ? '☕' : '🍽️', name:r.name, desc:r.desc, maps:r.maps, type:'restaurant' }))
+];
+document.getElementById('randomBtn').addEventListener('click', () => {
+  const pick = allOptions[Math.floor(Math.random() * allOptions.length)];
+  document.querySelectorAll('.random-overlay,.random-result-popup').forEach(e => e.remove());
+  const overlay = document.createElement('div');
+  overlay.className = 'random-overlay';
+  document.body.appendChild(overlay);
+  const popup = document.createElement('div');
+  popup.className = 'random-result-popup';
+  popup.innerHTML = `<button class="random-close">✕</button><div class="random-emoji">${pick.emoji}</div><div class="random-name">${pick.name}</div><div class="random-desc">${pick.desc}</div><div class="random-type">${pick.type}</div>${pick.maps ? `<a href="${pick.maps}" target="_blank" class="random-link">📍 Bekijk op Maps</a>` : ''}`;
+  document.body.appendChild(popup);
+  const close = () => { overlay.remove(); popup.remove(); };
+  overlay.addEventListener('click', close);
+  popup.querySelector('.random-close').addEventListener('click', close);
+});
+
+const bingoPool = [
+  {e:'🐄',l:'Koe'},{e:'🏔️',l:'Sneeuwberg'},{e:'⛪',l:'Kerkje'},{e:'🚜',l:'Tractor'},{e:'🌈',l:'Regenboog'},{e:'🚐',l:'Camper'},{e:'🌻',l:'Zonnebloem'},{e:'🐴',l:'Paard'},{e:'⛽',l:'Tankstation'},{e:'🚂',l:'Trein'},{e:'🏰',l:'Kasteel'},{e:'🌊',l:'Waterval'},{e:'🐑',l:'Schaap'},{e:'🚲',l:'Fietser'},{e:'🌲',l:'Dennenbos'},{e:'🦅',l:'Roofvogel'},{e:'🚁',l:'Helikopter'},{e:'🏗️',l:'Bouwkraan'},{e:'🐐',l:'Geit'},{e:'🚇',l:'Tunnel'},{e:'🏠',l:'Houten huis'},{e:'🚛',l:'Vrachtwagen'},{e:'🐕',l:'Hond'},{e:'🎿',l:'Skilift'},{e:'🌧️',l:'Regen'},{e:'🐔',l:'Kip'},{e:'🚌',l:'Bus'},{e:'🌽',l:'Maïsveld'},{e:'🐈',l:'Kat'},{e:'🚓',l:'Politieauto'},{e:'🚒',l:'Brandweer'},{e:'🚑',l:'Ambulance'},{e:'✈️',l:'Vliegtuig'},{e:'🏍️',l:'Motor'},{e:'🛵',l:'Scooter'},{e:'🚗',l:'Rode auto'},{e:'🚙',l:'Blauwe auto'},{e:'🦆',l:'Eend'},{e:'🐦',l:'Vogel op draad'},{e:'🐇',l:'Konijn'},{e:'🦋',l:'Vlinder'},{e:'🐝',l:'Bij/wesp'},{e:'🌺',l:'Rode bloem'},{e:'🍎',l:'Appelboom'},{e:'🪵',l:'Houtstapel'},{e:'⛲',l:'Fontein'},{e:'🏊',l:'Zwembad'},{e:'🎡',l:'Reuzenrad'},{e:'🎢',l:'Achtbaan'},{e:'🎪',l:'Tent/markt'},{e:'🗼',l:'Toren'},{e:'🌉',l:'Brug'},{e:'⚓',l:'Boot'},{e:'🚤',l:'Speedboot'},{e:'🛶',l:'Kano'},{e:'🧑‍🌾',l:'Boer'},{e:'👷',l:'Bouwvakker'},{e:'🧑‍🚒',l:'Brandweerman'},{e:'🏖️',l:'Strandstoelen'},{e:'⛺',l:'Tent'},{e:'🌄',l:'Zonsondergang'},{e:'🌙',l:'Maan'},{e:'⭐',l:'Ster(ren)'},{e:'☁️',l:'Grote wolk'},{e:'🌤️',l:'Zon + wolk'},{e:'❄️',l:'Sneeuw'},{e:'💨',l:'Harde wind'},{e:'🌪️',l:'Windmolen'},{e:'🔔',l:'Kerklok'},{e:'🚧',l:'Wegwerk'},{e:'🛑',l:'Stopbord'},{e:'🚦',l:'Stoplicht'},{e:'⬆️',l:'Eenrichtingsweg'},{e:'🅿️',l:'Parkeergarage'},{e:'🏪',l:'Winkeltje'},{e:'🍦',l:'IJskar'},{e:'☕',l:'Koffiebar'},{e:'🍺',l:'Biergarten'},{e:'🏥',l:'Ziekenhuis'},{e:'📮',l:'Brievenbus'},{e:'📡',l:'Schotelantenne'},{e:'🗑️',l:'Vuilniswagen'},{e:'🚃',l:'Kabelbaan'},{e:'🪨',l:'Grote rots'},{e:'🐿️',l:'Eekhoorn'},{e:'🦌',l:'Hert/ree'},{e:'🐟',l:'Vis'},{e:'🦢',l:'Zwaan'},{e:'🦆',l:'Eenden'},{e:'🐸',l:'Kikker'},{e:'🪺',l:'Vogelnest'},{e:'🍄',l:'Paddenstoel'},{e:'🫐',l:'Bessen'},{e:'🌾',l:'Graanveld'},{e:'🥬',l:'Moestuin'},{e:'🧺',l:'Waslijn'},{e:'🪜',l:'Ladder'},{e:'🧱',l:'Bakstenen muur'},{e:'🪟',l:'Dakraam'},{e:'🏚️',l:'Oud gebouw'},{e:'⛰️',l:'Rotswand'},{e:'🏞️',l:'Meer/meertje'},{e:'🛤️',l:'Spoorrails'},{e:'🛣️',l:'Snelweg'},{e:'🛫',l:'Vliegveld'},{e:'🚡',l:'Gondel'},{e:'⛷️',l:'Skiër'},{e:'🏂',l:'Snowboarder'},{e:'🧗',l:'Klimmer'},{e:'🚵',l:'Mountainbiker'},{e:'🐓',l:'Haan'},{e:'🦃',l:'Kalkoen'},{e:'🐎',l:'Ruiter'},{e:'🐛',l:'Rups'},{e:'🦎',l:'Hagedis'},{e:'🪁',l:'Vlieger'},{e:'🎈',l:'Ballon'},{e:'🎣',l:'Visser'},{e:'🪴',l:'Plant in pot'},{e:'🏵️',l:'Gele bloem'},{e:'🚿',l:'Sproeier'},{e:'🪣',l:'Emmer'},{e:'🧹',l:'Bezem'},{e:'🪑',l:'Bankje'},{e:'🧸',l:'Knuffel'},{e:'📻',l:'Radio'},{e:'🎵',l:'Muziek horen'},{e:'🔔',l:'Bel/gong'},{e:'🎺',l:'Muzikant'},{e:'🗻',l:'Bergtop'},{e:'🏕️',l:'Kampeerder'},{e:'🍕',l:'Pizzeria'},{e:'🍔',l:'Snackbar'},{e:'🌭',l:'Würstlstand'},{e:'🥨',l:'Bretzel'},{e:'🍺',l:'Biervat'},{e:'🧀',l:'Kaaswinkel'},{e:'🎭',l:'Theater'},{e:'📸',l:'Toerist met camera'},{e:'🗺️',l:'Kaart lezen'},{e:'🧳',l:'Koffer'},{e:'🎒',l:'Rugzak'},{e:'👨‍👩‍👧‍👦',l:'Gezin'},{e:'🐕‍🦺',l:'Hond uitlaten'},{e:'🛷',l:'Slee'},{e:'🪵',l:'Boomstam'},{e:'🍁',l:'Rood blad'},{e:'🌿',l:'Klimop'},{e:'🌵',l:'Cactus'},{e:'🪻',l:'Lavendel'},{e:'🐌',l:'Slak'},{e:'🕷️',l:'Spinnenweb'},{e:'🐞',l:'Lieveheersbeestje'},{e:'🦗',l:'Krekel'},{e:'🐜',l:'Mier'},{e:'🏋️',l:'Fitnesstoestel'},{e:'⚽',l:'Voetbalveld'},{e:'🎾',l:'Tennisbaan'},{e:'🏀',l:'Basketbalring'},{e:'⛳',l:'Golfvlag'},{e:'🛝',l:'Glijbaan'},{e:'🎠',l:'Draaimolen'},{e:'🧗‍♂️',l:'Klimwand'},{e:'🏇',l:'Paardenwei'},{e:'🐾',l:'Dierenspoor'}
+];
+const BINGO_KEY = 'salzkammergut_bingo';
+let bingoData = JSON.parse(localStorage.getItem(BINGO_KEY) || 'null');
+function shuffleAndPick() { return [...bingoPool].sort(() => Math.random() - 0.5).slice(0, 25); }
+function newBingoCard() { bingoData = { items: shuffleAndPick(), checked: [] }; localStorage.setItem(BINGO_KEY, JSON.stringify(bingoData)); }
+if (!bingoData || !bingoData.items) newBingoCard();
+function renderBingo() {
+  const grid = document.getElementById('bingoGrid');
+  grid.innerHTML = '';
+  bingoData.items.forEach((item, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'bingo-cell' + (bingoData.checked.includes(i) ? ' checked' : '');
+    cell.innerHTML = `<span class="bingo-emoji">${item.e}</span><span class="bingo-label">${item.l}</span>`;
+    cell.addEventListener('click', () => {
+      if (bingoData.checked.includes(i)) bingoData.checked = bingoData.checked.filter(x => x !== i); else bingoData.checked.push(i);
+      localStorage.setItem(BINGO_KEY, JSON.stringify(bingoData));
+      cell.classList.toggle('checked');
+    });
+    grid.appendChild(cell);
+  });
+}
+document.getElementById('bingoBtn').addEventListener('click', () => { renderBingo(); document.getElementById('bingoModal').classList.add('active'); });
+document.getElementById('bingoClose').addEventListener('click', () => document.getElementById('bingoModal').classList.remove('active'));
+document.getElementById('bingoModal').addEventListener('click', e => { if (e.target === e.currentTarget) document.getElementById('bingoModal').classList.remove('active'); });
+document.getElementById('bingoReset').addEventListener('click', () => { if (confirm('Nieuwe kaart maken? (Je krijgt andere items!)')) { newBingoCard(); renderBingo(); } });
+
+const weatherIcons = { 0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️', 45:'🌫️', 48:'🌫️', 51:'🌦️', 53:'🌧️', 55:'🌧️', 61:'🌧️', 63:'🌧️', 65:'🌧️', 71:'🌨️', 73:'🌨️', 75:'❄️', 80:'🌦️', 81:'🌧️', 82:'⛈️', 95:'⛈️' };
+function getWeatherIcon(code) { return weatherIcons[code] || '🌤️'; }
+async function fetchWeather() {
+  try {
+    const dalUrl = 'https://api.open-meteo.com/v1/forecast?latitude=47.74&longitude=13.45&current=temperature_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Europe/Vienna&forecast_days=8';
+    const bergUrl = 'https://api.open-meteo.com/v1/forecast?latitude=47.50&longitude=13.62&elevation=2000&current=temperature_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Europe/Vienna&forecast_days=8';
+    const [dalRes, bergRes] = await Promise.all([fetch(dalUrl), fetch(bergUrl)]);
+    const dal = await dalRes.json();
+    const berg = await bergRes.json();
+    const days = ['Zo','Ma','Di','Wo','Do','Vr','Za'];
+    let html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;"><div style="background:var(--cp-surface-soft);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--cp-border);"><div style="font-size:0.72rem;font-weight:700;color:var(--cp-text-muted);text-transform:uppercase;letter-spacing:0.5px;">🏘️ Dal (St. Wolfgang)</div><div style="font-size:2.2rem;margin:6px 0;">${getWeatherIcon(dal.current.weather_code)}</div><div style="font-size:1.4rem;font-weight:900;color:var(--cp-text);">${Math.round(dal.current.temperature_2m)}°C</div><div style="font-size:0.72rem;color:var(--cp-text-muted);margin-top:4px;">Wind: ${Math.round(dal.current.wind_speed_10m)} km/h</div></div><div style="background:var(--cp-surface-soft);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--cp-border);"><div style="font-size:0.72rem;font-weight:700;color:var(--cp-text-muted);text-transform:uppercase;letter-spacing:0.5px;">⛰️ Berg (~2000m)</div><div style="font-size:2.2rem;margin:6px 0;">${getWeatherIcon(berg.current.weather_code)}</div><div style="font-size:1.4rem;font-weight:900;color:var(--cp-text);">${Math.round(berg.current.temperature_2m)}°C</div><div style="font-size:0.72rem;color:var(--cp-text-muted);margin-top:4px;">Wind: ${Math.round(berg.current.wind_speed_10m)} km/h</div></div></div><div style="font-size:0.75rem;font-weight:700;color:var(--cp-text-muted);margin-bottom:8px;">KOMENDE 7 DAGEN (dal)</div><div style="display:flex;gap:8px;overflow-x:auto;">`;
+    for (let i = 1; i < dal.daily.time.length; i++) {
+      const date = new Date(dal.daily.time[i]);
+      html += `<div style="min-width:70px;text-align:center;background:var(--cp-surface-soft);border-radius:10px;padding:10px 8px;border:1px solid var(--cp-border);flex-shrink:0;"><div style="font-size:0.7rem;font-weight:700;color:var(--cp-text-muted);">${days[date.getDay()]} ${date.getDate()}/${date.getMonth()+1}</div><div style="font-size:1.4rem;margin:4px 0;">${getWeatherIcon(dal.daily.weather_code[i])}</div><div style="font-size:0.75rem;font-weight:700;color:var(--cp-text);">${Math.round(dal.daily.temperature_2m_max[i])}° / ${Math.round(dal.daily.temperature_2m_min[i])}°</div></div>`;
+    }
+    html += '</div>';
+    document.getElementById('weatherContent').innerHTML = html;
+  } catch (e) {
+    document.getElementById('weatherContent').innerHTML = '<div style="color:var(--cp-text-muted)">⚠️ Weer kon niet worden geladen. Check je internetverbinding.<br><br><a href="https://www.bergfex.at/sommer/st-wolfgang/wetter/" target="_blank" style="color:var(--cp-link);font-weight:700">→ Bekijk weer op Bergfex</a></div>';
+  }
+}
+fetchWeather();
+
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('salzkammergut-sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

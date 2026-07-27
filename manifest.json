@@ -1,0 +1,10 @@
+{
+  "name": "Laufen-Salzkammergut 2026",
+  "short_name": "Salzkammergut 2026",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f7f4ef",
+  "theme_color": "#b11f4b",
+  "lang": "nl",
+  "description": "Vakantiegids voor Laufen en Salzkammergut 2026"
+}
